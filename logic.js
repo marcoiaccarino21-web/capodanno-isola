@@ -33,7 +33,8 @@ export const PROGRAM = [
   { day: 'Giovedì 31 dicembre', title: 'Delitto a Villa Ferraris', rows: [
     ['Mattina', 'Gita a Valenza (24 km, mezz’ora di macchina): centro, Duomo e vetrina della bottega orafa del MOD'],
     ['Pomeriggio', 'Rientro, lasagne insieme e travestimenti'],
-    ['19:30', 'Aperitivo in piedi, travestiti: ci si presenta nel personaggio'],
+    ['19:30', 'Aperitivo in piedi, travestiti: Ottavio Ferraris accoglie gli ospiti e brinda'],
+    ['20:00', 'Ottavio viene trovato morto: comincia il giallo'],
     ['20:15', 'Cena con delitto: antipasti, lasagne, cotechino e lenticchie, con un sopralluogo per la casa tra una portata e l’altra'],
     ['23:10', 'Accuse dall’app, poi la soluzione'],
     ['Mezzanotte', 'Countdown e brindisi'],
