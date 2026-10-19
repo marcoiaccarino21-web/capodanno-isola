@@ -33,9 +33,10 @@ export const PROGRAM = [
   { day: 'Giovedì 31 dicembre', title: 'Delitto a Villa Ferraris', rows: [
     ['Mattina', 'Gita a Valenza (24 km, mezz’ora di macchina): centro, Duomo e vetrina della bottega orafa del MOD'],
     ['Pomeriggio', 'Rientro, lasagne insieme e travestimenti'],
-    ['20:00', 'Cena con delitto in tre giri: antipasti, lasagne, secondo'],
-    ['23:15', 'Accuse dall’app, poi la soluzione'],
-    ['Mezzanotte', 'Brindisi, cotechino e lenticchie'],
+    ['19:30', 'Aperitivo in piedi, travestiti: ci si presenta nel personaggio'],
+    ['20:15', 'Cena con delitto: antipasti, lasagne, cotechino e lenticchie, con un sopralluogo per la casa tra una portata e l’altra'],
+    ['23:10', 'Accuse dall’app, poi la soluzione'],
+    ['Mezzanotte', 'Countdown e brindisi'],
     ['Dopo', 'Party game e giochi alcolici']
   ]},
   { day: 'Venerdì 1° gennaio', title: 'Nessuna sveglia, gran finale', rows: [
@@ -95,7 +96,7 @@ export function tally(ballots, catId) {
 
 // Personaggi del giallo: si assegnano nell'ordine di importanza per la trama,
 // così con meno di 13 persone restano comunque tutti gli indizi decisivi.
-export function assignCharacters(people, order, rnd = Math.random) {
-  const ppl = shuffle(people, rnd).slice(0, order.length);
+export function assignCharacters(people, order, narrator, rnd = Math.random) {
+  const ppl = shuffle(people.filter(p => p !== narrator), rnd).slice(0, order.length);
   return ppl.map((p, i) => ({ p, c: order[i] }));
 }
