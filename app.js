@@ -220,7 +220,8 @@ function render() {
   else if (!loaded) body = [h('p', { class: 'sub' }, 'Caricamento…')];
   else if (tab === 'chi' || (!me && tab !== 'regia' && tab !== 'programma')) body = screenChi();
   else body = { programma: screenProgramma, squadra: screenSquadra, oscar: screenOscar, regia: screenRegia }[tab]();
-  app.replaceChildren(...[head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body].filter(Boolean));
+  const foot = !admin && tab !== 'regia' && configured ? h('button', { class: 'btn ghost', style: 'align-self:center;font-size:13px;min-height:36px;padding:6px 14px;opacity:.7', onclick: () => go('regia') }, 'Area organizzatore') : null;
+  app.replaceChildren(...[head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body, foot].filter(Boolean));
   // barra in basso
   const tabs = [['programma', 'Programma'], ['squadra', 'Squadra'], ['oscar', 'Oscar']];
   if (admin) tabs.push(['regia', 'Regia']);
