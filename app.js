@@ -1,10 +1,13 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
-import { MENUS, CATEGORIES, PROGRAM, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, tally } from './logic.js';
+import { MENUS, CATEGORIES, PROGRAM, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, tally, assignCharacters } from './logic.js';
+import { GIALLO } from './giallo.js';
 
 /* ---------- stato ---------- */
-let state = { people: [], teams: [], votingOpen: false, opened: false, revealed: [] };
+const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false };
+let state = { people: [], teams: [], votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO };
+let accuse = [];            // [{id, voter, suspect}]
 let ballots = [];           // [{id, voter, votes, at}]
 let loaded = false;
 let me = load('me');
@@ -25,13 +28,17 @@ if (configured) {
   stateRef = doc(db, 'capodanno', 'stato');
   onSnapshot(stateRef, snap => {
     const v = snap.exists() ? snap.data() : {};
-    state = { people: v.people || [], teams: v.teams || [], votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [] };
+    state = { people: v.people || [], teams: v.teams || [], votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], giallo: { ...NO_GIALLO, ...(v.giallo || {}) } };
     loaded = true;
     if (me && !state.people.includes(me)) { me = null; save('me', null); if (tab !== 'regia') tab = 'chi'; }
     render();
   }, e => { error = 'Non riesco a leggere i dati: controlla le regole di Firestore. (' + e.code + ')'; render(); });
   onSnapshot(collection(db, 'ballots'), snap => {
     ballots = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  }, () => {});
+  onSnapshot(collection(db, 'accuse'), snap => {
+    accuse = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     render();
   }, () => {});
 }
@@ -78,7 +85,7 @@ function screenSquadra() {
   const out = [];
   if (!state.teams.length) {
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena giro del mondo'), h('h2', {}, 'Squadre ancora da sorteggiare'),
-      h('p', { class: 'sub' }, 'Il sorteggio si fa il 30 pomeriggio. Appena estratte, qui vedrai la tua squadra e cosa cucinare.')));
+      h('p', { class: 'sub' }, 'Il sorteggio si fa una settimana prima, così ognuno sa cosa comprare. Appena estratte, qui vedrai la tua squadra e cosa cucinare.')));
     return out;
   }
   const t = teamOf(state.teams, me);
@@ -146,6 +153,96 @@ function screenSpoglio(cats) {
   return out;
 }
 
+/* ---------- giallo ---------- */
+const charById = id => GIALLO.characters.find(c => c.id === id);
+const myChar = () => { const a = state.giallo.assign.find(x => x.p === me); return a && charById(a.c); };
+const myAccusa = () => me && accuse.find(a => a.id === slug(me));
+
+function screenGiallo() {
+  const g = state.giallo; const out = [];
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, GIALLO.setting)));
+  if (!g.assign.length) {
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Come funziona'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r))),
+      h('p', { class: 'small' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei e cosa indossare.')));
+    return out;
+  }
+  if (me && me === g.narrator) return [...out, ...screenNarratore()];
+  const c = myChar();
+  if (c) {
+    out.push(h('div', { class: 'box gold reveal' }, h('h3', {}, 'Il tuo personaggio · ' + c.role), h('p', { class: 'big-dish' }, c.name),
+      h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + c.costume), h('p', {}, c.intro)));
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, c.secret), h('h3', {}, 'Il tuo obiettivo'), h('p', {}, c.goal)));
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'I tuoi indizi'),
+      h('div', { class: 'list' }, c.clues.map((t, i) => h('div', { class: 'item' }, h('b', {}, 'Giro ' + (i + 1)),
+        g.round > i ? h('span', {}, t) : h('span', { class: 'small' }, 'Si sblocca durante la cena'))))));
+  } else if (me) {
+    out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
+  }
+  out.push(boxStanze());
+  if (g.accuse && !g.solved) out.push(...boxAccusa());
+  if (g.solved) out.push(...boxSoluzione());
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'),
+    g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'team' + (a.p === me ? ' mine' : '') }, h('strong', {}, x.name), h('span', { class: 'sub' }, x.role + ' · ' + a.p)); })));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Le regole'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r)))));
+  return out;
+}
+function boxStanze(all) {
+  const r = state.giallo.round;
+  return h('div', { class: 'box' }, h('h3', {}, 'Sopralluogo · le stanze della villa'),
+    h('div', { class: 'list' }, GIALLO.rooms.map(x => h('div', { class: 'item' }, h('b', {}, x.name),
+      all || r >= x.round ? h('span', {}, x.text) : h('span', { class: 'small' }, 'Ancora sigillata: si apre al giro ' + x.round)))));
+}
+function screenNarratore() {
+  const g = state.giallo; const out = [];
+  out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Il tuo ruolo'), h('p', { class: 'big-dish' }, 'Narratore'),
+    h('p', {}, 'Guidi la serata e tieni i tempi. Gli sblocchi dei giri, le accuse e la soluzione si comandano dalla Regia.'),
+    admin ? h('button', { class: 'btn', onclick: () => go('regia') }, 'Vai alla Regia') : null));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
+    h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
+  out.push(boxStanze(true));
+  const who = g.assign.find(a => a.c === GIALLO.culprit)?.p;
+  out.push(h('div', { class: 'envelope' }, h('h3', {}, 'Solo per te · la soluzione'),
+    h('p', { class: 'winner' }, charById(GIALLO.culprit).name + (who ? ' (' + who + ')' : '')), h('p', {}, GIALLO.solution)));
+  if (g.accuse || g.solved) out.push(...boxSoluzioneConteggio());
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'),
+    g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'team' }, h('strong', {}, x.name), h('span', { class: 'sub' }, x.role + ' · ' + a.p + ' · ' + x.costume)); })));
+  return out;
+}
+function boxSoluzioneConteggio() {
+  const t = {}; for (const a of accuse) t[a.suspect] = (t[a.suspect] || 0) + 1;
+  const rows = Object.entries(t).sort((a, b) => b[1] - a[1]); const top = rows.length ? rows[0][1] : 0;
+  return [h('div', { class: 'box' }, h('h3', {}, `Accuse · ${accuse.length} su ${state.giallo.assign.length}`),
+    rows.length ? h('div', { class: 'tally' }, rows.map(([id, k]) => h('div', {}, h('span', {}, charById(id).name), h('span', { class: 'count' }, `${k} ${k === 1 ? 'accusa' : 'accuse'}`),
+      h('span', { class: 'bar' }, h('i', { style: `width:${top ? k / top * 100 : 0}%` }))))) : h('p', { class: 'sub' }, 'Ancora nessuna accusa.'))];
+}
+let suspect = null;
+function boxAccusa() {
+  const mine = myAccusa();
+  if (mine) return [h('div', { class: 'box reveal' }, h('h3', {}, 'Accusa registrata'), h('h2', {}, 'Hai accusato ' + charById(mine.suspect).name),
+    h('p', { class: 'sub' }, `Hanno accusato ${accuse.length} su ${state.giallo.assign.length}. La soluzione arriva tra poco.`))];
+  const myId = state.giallo.assign.find(x => x.p === me)?.c;
+  return [h('div', { class: 'box' }, h('h3', {}, 'Le accuse'), h('h2', {}, 'Chi ha ucciso Ottavio?'),
+    h('p', { class: 'sub' }, 'Una sola accusa, segreta e definitiva.'),
+    h('div', { class: 'nominees' }, state.giallo.assign.filter(a => a.c !== myId).map(a => { const x = charById(a.c);
+      return h('button', { class: 'nominee', 'aria-pressed': suspect === x.id ? 'true' : 'false', onclick: () => { suspect = x.id; render(); } }, x.name, h('small', {}, x.role + ' · ' + a.p)); })),
+    h('button', { class: 'btn big', disabled: !suspect, onclick: castAccusa }, 'Accusa'))];
+}
+async function castAccusa() {
+  try { await setDoc(doc(db, 'accuse', slug(me)), { voter: me, suspect, at: new Date().toISOString() }); suspect = null; render(); }
+  catch (e) { error = 'L’accusa non è stata salvata (' + e.code + '). Se avevi già accusato non puoi cambiarla.'; render(); }
+}
+function boxSoluzione() {
+  const culprit = charById(GIALLO.culprit); const who = state.giallo.assign.find(a => a.c === GIALLO.culprit)?.p;
+  const t = {}; for (const a of accuse) t[a.suspect] = (t[a.suspect] || 0) + 1;
+  const rows = Object.entries(t).sort((a, b) => b[1] - a[1]); const top = rows.length ? rows[0][1] : 0;
+  const right = accuse.filter(a => a.suspect === GIALLO.culprit).map(a => a.voter);
+  return [h('div', { class: 'envelope reveal' }, h('h3', {}, 'La soluzione'), h('p', { class: 'winner' }, culprit.name + (who ? ' (' + who + ')' : '')), h('p', {}, GIALLO.solution),
+    h('h3', {}, 'Le accuse'), h('div', { class: 'tally' }, rows.map(([id, k]) => h('div', {}, h('span', {}, charById(id).name), h('span', { class: 'count' }, `${k} ${k === 1 ? 'accusa' : 'accuse'}`),
+      h('span', { class: 'bar' }, h('i', { style: `width:${top ? k / top * 100 : 0}%` }))))),
+    h('p', { class: 'sub' }, right.length ? 'Hanno indovinato: ' + right.join(', ') : 'Nessuno ha indovinato: il colpevole l’ha fatta franca.'))];
+}
+
 function screenRegia() {
   if (!admin) {
     const pin = h('input', { type: 'password', id: 'pin', inputmode: 'numeric', placeholder: 'Codice regia', autocomplete: 'off' });
@@ -175,6 +272,26 @@ function screenRegia() {
       : h('div', { class: 'row' },
           h('button', { class: 'btn', disabled: state.people.length < 2 || state.votingOpen, onclick: () => { confirm = 'draw'; render(); } }, locked ? 'Rifai il sorteggio' : 'Sorteggia adesso'),
           locked && !state.votingOpen ? h('button', { class: 'btn ghost', onclick: () => patch({ teams: [] }) }, 'Annulla sorteggio') : null)));
+  // giallo
+  const g = state.giallo;
+  const gBtns = [];
+  if (confirm === 'gassign') gBtns.push(h('button', { class: 'btn', onclick: () => { confirm = null; patch({ giallo: { ...g, narrator: me, assign: assignCharacters(state.people, GIALLO.order, me) } }); } }, g.assign.length ? 'Sì, riassegna' : 'Sì, assegna'),
+    h('button', { class: 'btn ghost', onclick: () => { confirm = null; render(); } }, 'Annulla'));
+  else if (g.round === 0) gBtns.push(h('button', { class: 'btn', disabled: state.people.length < 3 || !me, onclick: () => { confirm = 'gassign'; render(); } }, g.assign.length ? 'Riassegna i personaggi' : 'Assegna i personaggi'));
+  if (g.assign.length && g.round < 3) gBtns.push(h('button', { class: g.round === 0 ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, round: g.round + 1 } }) }, 'Sblocca il giro ' + (g.round + 1)));
+  if (g.round === 3 && !g.accuse) gBtns.push(h('button', { class: 'btn', onclick: () => patch({ giallo: { ...g, accuse: true } }) }, 'Apri le accuse'));
+  if (g.accuse && !g.solved) gBtns.push(confirm === 'gsolve'
+    ? h('button', { class: 'btn', onclick: () => { confirm = null; patch({ giallo: { ...g, solved: true } }); go('giallo'); } }, 'Sì, rivela la soluzione')
+    : h('button', { class: 'btn', disabled: !accuse.length, onclick: () => { confirm = 'gsolve'; render(); } }, 'Rivela la soluzione'));
+  const accused = new Set(accuse.map(a => a.id));
+  const mancanoG = g.assign.filter(a => !accused.has(slug(a.p))).map(a => a.p);
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto'),
+    !me ? h('p', { class: 'small' }, 'Prima scegli il tuo nome in “Chi sei?”: sarai il narratore e non riceverai un personaggio.') : null,
+    h('p', { class: 'sub' }, !g.assign.length ? `Assegna i personaggi una settimana prima. Tu sei il narratore; per gli altri ${Math.max(0, state.people.length - (me ? 1 : 0))} servono ${Math.min(Math.max(0, state.people.length - (me ? 1 : 0)), GIALLO.order.length)} personaggi su ${GIALLO.order.length}.`
+      : g.solved ? 'Soluzione rivelata.' : g.accuse ? `Accuse: ${accuse.length} su ${g.assign.length}.` : g.round ? `Giro ${g.round} di 3 sbloccato.` : `${g.assign.length} personaggi assegnati: ognuno vede il suo nell’app.`),
+    g.accuse && !g.solved && mancanoG.length ? h('p', { class: 'small' }, 'Mancano: ' + mancanoG.join(', ')) : null,
+    g.assign.length ? h('p', { class: 'small' }, 'Narratore: ' + (g.narrator || '—') + '. La sera del 31 segui il copione nella scheda Giallo e sblocca un giro a ogni portata.') : null,
+    h('div', { class: 'row' }, gBtns)));
   // urne
   const voted = new Set(ballots.map(b => b.id));
   const missing = state.people.filter(p => !voted.has(slug(p)));
@@ -192,7 +309,7 @@ function screenRegia() {
     state.opened ? h('button', { class: 'btn', onclick: () => go('oscar') }, 'Vai allo spoglio') : null));
   // azzera
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Azzera tutto'),
-    h('p', { class: 'sub' }, 'Cancella schede, sorteggio e stato delle urne. I partecipanti restano.'),
+    h('p', { class: 'sub' }, 'Cancella schede, accuse, sorteggio, personaggi e stato delle urne. I partecipanti restano.'),
     confirm === 'reset'
       ? h('div', { class: 'row' }, h('button', { class: 'btn danger', onclick: resetAll }, 'Sì, azzera'), h('button', { class: 'btn ghost', onclick: () => { confirm = null; render(); } }, 'Annulla'))
       : h('button', { class: 'btn ghost', onclick: () => { confirm = 'reset'; render(); } }, 'Azzera')));
@@ -204,7 +321,9 @@ async function resetAll() {
   try {
     const snap = await getDocs(collection(db, 'ballots'));
     await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
-    await patch({ teams: [], votingOpen: false, opened: false, revealed: [] });
+    const snap2 = await getDocs(collection(db, 'accuse'));
+    await Promise.all(snap2.docs.map(d => deleteDoc(d.ref)));
+    await patch({ teams: [], votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO });
   } catch (e) { error = 'Non sono riuscito ad azzerare (' + e.code + ').'; render(); }
 }
 
@@ -219,11 +338,11 @@ function render() {
   if (!configured) body = [h('div', { class: 'warn' }, 'App non ancora collegata a Firebase: incolla la configurazione in config.js (vedi LEGGIMI).')];
   else if (!loaded) body = [h('p', { class: 'sub' }, 'Caricamento…')];
   else if (tab === 'chi' || (!me && tab !== 'regia' && tab !== 'programma')) body = screenChi();
-  else body = { programma: screenProgramma, squadra: screenSquadra, oscar: screenOscar, regia: screenRegia }[tab]();
+  else body = { programma: screenProgramma, squadra: screenSquadra, giallo: screenGiallo, oscar: screenOscar, regia: screenRegia }[tab]();
   const foot = !admin && tab !== 'regia' && configured ? h('button', { class: 'btn ghost', style: 'align-self:center;font-size:13px;min-height:36px;padding:6px 14px;opacity:.7', onclick: () => go('regia') }, 'Area organizzatore') : null;
   app.replaceChildren(...[head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body, foot].filter(Boolean));
   // barra in basso
-  const tabs = [['programma', 'Programma'], ['squadra', 'Squadra'], ['oscar', 'Oscar']];
+  const tabs = [['programma', 'Programma'], ['squadra', 'Squadra'], ['giallo', 'Giallo'], ['oscar', 'Oscar']];
   if (admin) tabs.push(['regia', 'Regia']);
   nav.style.setProperty('--n', tabs.length);
   nav.replaceChildren(...tabs.map(([id, label]) => h('button', { 'aria-current': tab === id ? 'page' : null, onclick: () => go(me || id === 'programma' || id === 'regia' ? id : 'chi') }, label)));
