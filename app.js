@@ -8,7 +8,7 @@ let state = { people: [], teams: [], votingOpen: false, opened: false, revealed:
 let ballots = [];           // [{id, voter, votes, at}]
 let loaded = false;
 let me = load('me');
-let admin = load('admin', sessionStorage) === '1';
+let admin = load('admin') === '1';
 let tab = me ? 'squadra' : 'chi';
 let flow = null;            // voto in corso: {i, votes}
 let confirm = null;         // conferme in pagina: 'draw' | 'open' | 'reset'
@@ -149,7 +149,7 @@ function screenSpoglio(cats) {
 function screenRegia() {
   if (!admin) {
     const pin = h('input', { type: 'password', id: 'pin', inputmode: 'numeric', placeholder: 'Codice regia', autocomplete: 'off' });
-    const tryPin = () => { if (pin.value === ADMIN_PIN) { admin = true; save('admin', '1', sessionStorage); render(); } else { pin.value = ''; error = 'Codice sbagliato.'; render(); } };
+    const tryPin = () => { if (pin.value === ADMIN_PIN) { admin = true; save('admin', '1'); render(); } else { pin.value = ''; error = 'Codice sbagliato.'; render(); } };
     pin.addEventListener('keydown', e => { if (e.key === 'Enter') tryPin(); });
     return [h('div', { class: 'box' }, h('h3', {}, 'Regia'), h('h2', {}, 'Solo per l’organizzatore'),
       h('div', { class: 'row' }, pin, h('button', { class: 'btn', onclick: tryPin }, 'Entra')))];
@@ -196,7 +196,7 @@ function screenRegia() {
     confirm === 'reset'
       ? h('div', { class: 'row' }, h('button', { class: 'btn danger', onclick: resetAll }, 'Sì, azzera'), h('button', { class: 'btn ghost', onclick: () => { confirm = null; render(); } }, 'Annulla'))
       : h('button', { class: 'btn ghost', onclick: () => { confirm = 'reset'; render(); } }, 'Azzera')));
-  out.push(h('button', { class: 'btn ghost', onclick: () => { admin = false; save('admin', null, sessionStorage); render(); } }, 'Esci dalla regia'));
+  out.push(h('button', { class: 'btn ghost', onclick: () => { admin = false; save('admin', null); render(); } }, 'Esci dalla regia'));
   return out;
 }
 async function resetAll() {
