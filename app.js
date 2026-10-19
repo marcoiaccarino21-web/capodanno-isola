@@ -5,7 +5,7 @@ import { MENUS, CATEGORIES, PROGRAM, slug, draw, menuById, teamOf, teamLabel, no
 import { GIALLO } from './giallo.js';
 
 /* ---------- stato ---------- */
-const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false };
+const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null };
 let state = { people: [], teams: [], votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO };
 let accuse = [];            // [{id, voter, suspect}]
 let ballots = [];           // [{id, voter, votes, at}]
@@ -182,6 +182,7 @@ function screenGiallo() {
   if (g.accuse && !g.solved) out.push(...boxAccusa());
   if (g.solved) out.push(...boxSoluzione());
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'),
+    g.narrator ? h('div', { class: 'team' }, h('strong', {}, GIALLO.ottavio.name), h('span', { class: 'sub' }, GIALLO.ottavio.role + ' · ' + g.narrator + ', narratore')) : null,
     g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'team' + (a.p === me ? ' mine' : '') }, h('strong', {}, x.name), h('span', { class: 'sub' }, x.role + ' · ' + a.p)); })));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Le regole'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r)))));
   return out;
@@ -194,9 +195,14 @@ function boxStanze(all) {
 }
 function screenNarratore() {
   const g = state.giallo; const out = [];
-  out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Il tuo ruolo'), h('p', { class: 'big-dish' }, 'Narratore'),
-    h('p', {}, 'Guidi la serata e tieni i tempi. Gli sblocchi dei giri, le accuse e la soluzione si comandano dalla Regia.'),
+  const O = GIALLO.ottavio;
+  out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Il tuo ruolo · narratore'), h('p', { class: 'big-dish' }, O.name),
+    h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + O.costume),
+    h('p', {}, 'Nel prologo sei vivo: accogli gli ospiti, brindi e muori. Poi torni come fantasma e guidi la serata. Giri, accuse e soluzione si comandano dalla Regia.'),
     admin ? h('button', { class: 'btn', onclick: () => go('regia') }, 'Vai alla Regia') : null));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Il brindisi di Ottavio · verso le 19:45'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Una battuta per ogni ospite'), h('p', { class: 'small' }, 'Dille durante l’aperitivo, a ciascuno: lì per lì non significano niente, si capiscono dopo.'),
+    h('div', { class: 'list' }, g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), O.lines[a.c] || '')); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
     h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
@@ -278,6 +284,9 @@ function screenRegia() {
   if (confirm === 'gassign') gBtns.push(h('button', { class: 'btn', onclick: () => { confirm = null; patch({ giallo: { ...g, narrator: me, assign: assignCharacters(state.people, GIALLO.order, me) } }); } }, g.assign.length ? 'Sì, riassegna' : 'Sì, assegna'),
     h('button', { class: 'btn ghost', onclick: () => { confirm = null; render(); } }, 'Annulla'));
   else if (g.round === 0) gBtns.push(h('button', { class: 'btn', disabled: state.people.length < 3 || !me, onclick: () => { confirm = 'gassign'; render(); } }, g.assign.length ? 'Riassegna i personaggi' : 'Assegna i personaggi'));
+  const callee = GIALLO.callOrder.map(id => g.assign.find(a => a.c === id)).find(Boolean);
+  if (g.assign.length && g.round === 0 && callee) gBtns.push(h('button', { class: g.call ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, call: { to: callee.p, at: Date.now() } } }) },
+    g.call ? 'Rimanda l’avviso a ' + callee.p : 'Manda ' + callee.p + ' nello studio'));
   if (g.assign.length && g.round < 3) gBtns.push(h('button', { class: g.round === 0 ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, round: g.round + 1 } }) }, 'Sblocca il giro ' + (g.round + 1)));
   if (g.round === 3 && !g.accuse) gBtns.push(h('button', { class: 'btn', onclick: () => patch({ giallo: { ...g, accuse: true } }) }, 'Apri le accuse'));
   if (g.accuse && !g.solved) gBtns.push(confirm === 'gsolve'
@@ -347,6 +356,21 @@ function render() {
   nav.style.setProperty('--n', tabs.length);
   nav.replaceChildren(...tabs.map(([id, label]) => h('button', { 'aria-current': tab === id ? 'page' : null, onclick: () => go(me || id === 'programma' || id === 'regia' ? id : 'chi') }, label)));
   nav.hidden = !configured;
+  showCall();
+}
+function showCall() {
+  const g = state.giallo; const old = document.getElementById('chiamata');
+  const due = g && g.call && g.call.to === me && load('call') !== String(g.call.at);
+  if (!due) { old?.remove(); return; }
+  if (old) return;
+  const el = h('div', { id: 'chiamata', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:50;background:#171C36;display:flex;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
+      h('p', { class: 'eyebrow' }, 'Solo per te · Villa Ferraris'),
+      h('h1', {}, 'Ti chiamano ', h('em', {}, 'nello studio')),
+      h('p', { style: 'font-size:19px;line-height:1.5' }, GIALLO.ottavio.call),
+      h('button', { class: 'btn big', onclick: () => { save('call', String(g.call.at)); document.getElementById('chiamata')?.remove(); } }, 'Ci vado')));
+  document.body.append(el);
+  try { navigator.vibrate && navigator.vibrate([400, 150, 400, 150, 400]); } catch {}
 }
 // la regia si apre aggiungendo #regia all'indirizzo
 if (location.hash === '#regia') tab = 'regia';
