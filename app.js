@@ -220,7 +220,7 @@ function render() {
   else if (!loaded) body = [h('p', { class: 'sub' }, 'Caricamento…')];
   else if (tab === 'chi' || (!me && tab !== 'regia' && tab !== 'programma')) body = screenChi();
   else body = { programma: screenProgramma, squadra: screenSquadra, oscar: screenOscar, regia: screenRegia }[tab]();
-  app.replaceChildren(head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body);
+  app.replaceChildren(...[head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body].filter(Boolean));
   // barra in basso
   const tabs = [['programma', 'Programma'], ['squadra', 'Squadra'], ['oscar', 'Oscar']];
   if (admin) tabs.push(['regia', 'Regia']);
