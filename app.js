@@ -171,7 +171,9 @@ function screenGiallo() {
   if (c) {
     out.push(h('div', { class: 'box gold reveal' }, h('h3', {}, 'Il tuo personaggio · ' + c.role), h('p', { class: 'big-dish' }, c.name),
       h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + c.costume), h('p', {}, c.intro)));
-    out.push(h('div', { class: 'box' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, c.secret), h('h3', {}, 'Il tuo obiettivo'), h('p', {}, c.goal)));
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, c.secret),
+      c.where ? h('h3', {}, 'Dove eri davvero · 19:55–20:05') : null, c.where ? h('p', {}, c.where) : null,
+      h('h3', {}, 'Il tuo obiettivo'), h('p', {}, c.goal)));
     out.push(h('div', { class: 'box' }, h('h3', {}, 'I tuoi indizi'),
       h('div', { class: 'list' }, c.clues.map((t, i) => h('div', { class: 'item' }, h('b', {}, 'Giro ' + (i + 1)),
         g.round > i ? h('span', {}, t) : h('span', { class: 'small' }, 'Si sblocca durante la cena'))))));
@@ -213,6 +215,8 @@ function screenNarratore() {
   if (g.accuse || g.solved) out.push(...boxSoluzioneConteggio());
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'),
     g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'team' }, h('strong', {}, x.name), h('span', { class: 'sub' }, x.role + ' · ' + a.p + ' · ' + x.costume)); })));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Solo per te · chi era dove tra le 19:55 e le 20:05'),
+    h('div', { class: 'list' }, g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), x.where || '')); }))));
   return out;
 }
 function boxSoluzioneConteggio() {
