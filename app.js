@@ -3,10 +3,13 @@ import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs }
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, PROGRAM, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, tally, assignCharacters } from './logic.js';
 import { GIALLO } from './giallo.js';
+import { NOMI, caricaRitratti } from './ritratti.js';
 
 /* ---------- stato ---------- */
 const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null };
-let state = { people: [], teams: [], votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO };
+let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO };
+let RITRATTI = {};
+caricaRitratti().then(r => { RITRATTI = r; render(); }).catch(() => {});
 let accuse = [];            // [{id, voter, suspect}]
 let ballots = [];           // [{id, voter, votes, at}]
 let loaded = false;
@@ -28,7 +31,7 @@ if (configured) {
   stateRef = doc(db, 'capodanno', 'stato');
   onSnapshot(stateRef, snap => {
     const v = snap.exists() ? snap.data() : {};
-    state = { people: v.people || [], teams: v.teams || [], votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], giallo: { ...NO_GIALLO, ...(v.giallo || {}) } };
+    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], giallo: { ...NO_GIALLO, ...(v.giallo || {}) } };
     loaded = true;
     if (me && !state.people.includes(me)) { me = null; save('me', null); if (tab !== 'regia') tab = 'chi'; }
     render();
@@ -155,6 +158,31 @@ function screenSpoglio(cats) {
 
 /* ---------- giallo ---------- */
 const charById = id => GIALLO.characters.find(c => c.id === id);
+// nome, ruolo e ritratto del personaggio secondo il sesso di chi lo interpreta
+function pers(a) {
+  const c = charById(a.c), s = state.sesso[a.p], n = NOMI[a.c];
+  return { name: s && n ? n[s][0] : c.name, role: s && n ? n[s][1] : c.role, key: s ? a.c + '-' + s : null, sesso: s };
+}
+function ritratto(key, cls) {
+  const svg = key && RITRATTI[key];
+  return svg ? h('img', { class: cls || 'ritratto', alt: '', src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) }) : null;
+}
+const genere = (t, s) => !s ? t : t.replace(/un figlio o una figlia/g, s === 'F' ? 'una figlia' : 'un figlio');
+(() => { const st = document.createElement('style'); st.textContent =
+  '.ritratto{display:block;width:min(240px,70%);margin:0 auto 4px;aspect-ratio:540/620;filter:drop-shadow(0 6px 16px rgba(0,0,0,.35))}' +
+  '.galleria{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}' +
+  '.galleria figure{margin:0;display:flex;flex-direction:column;align-items:center;text-align:center;gap:2px}' +
+  '.galleria img,.galleria .vuoto{width:100%;aspect-ratio:540/620}.galleria .vuoto{border:2px solid var(--line);border-radius:50%/44%}' +
+  '.galleria b{font-family:var(--display);font-size:14px;line-height:1.15}.galleria small{color:var(--faint);font-size:12px;line-height:1.2}.galleria .mine b{color:var(--gold)}' +
+  '.sx{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}.sx button{background:none;border:0;color:var(--faint);font:700 12px var(--body);padding:4px 9px;min-height:30px;cursor:pointer}' +
+  '.sx button[aria-pressed="true"]{background:var(--gold);color:var(--night)}';
+  document.head.append(st); })();
+function galleria(list, withNarrator) {
+  const g = state.giallo;
+  const figs = list.map(a => { const x = pers(a); return h('figure', { class: a.p === me ? 'mine' : null }, ritratto(x.key, ' ') || h('div', { class: 'vuoto' }), h('b', {}, x.name), h('small', {}, x.role + ' · ' + a.p)); });
+  if (withNarrator && g.narrator) figs.unshift(h('figure', {}, ritratto('ottavio', ' '), h('b', {}, GIALLO.ottavio.name), h('small', {}, 'La vittima · ' + g.narrator)));
+  return h('div', { class: 'galleria' }, figs);
+}
 const myChar = () => { const a = state.giallo.assign.find(x => x.p === me); return a && charById(a.c); };
 const myAccusa = () => me && accuse.find(a => a.id === slug(me));
 
@@ -169,8 +197,9 @@ function screenGiallo() {
   if (me && me === g.narrator) return [...out, ...screenNarratore()];
   const c = myChar();
   if (c) {
-    out.push(h('div', { class: 'box gold reveal' }, h('h3', {}, 'Il tuo personaggio · ' + c.role), h('p', { class: 'big-dish' }, c.name),
-      h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + c.costume), h('p', {}, c.intro)));
+    const x = pers(state.giallo.assign.find(a => a.p === me));
+    out.push(h('div', { class: 'box gold reveal' }, ritratto(x.key), h('h3', {}, 'Il tuo personaggio · ' + x.role), h('p', { class: 'big-dish' }, x.name),
+      h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + c.costume), h('p', {}, genere(c.intro, x.sesso))));
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, c.secret),
       c.where ? h('h3', {}, 'Dove eri davvero · 19:55–20:05') : null, c.where ? h('p', {}, c.where) : null,
       h('h3', {}, 'Il tuo obiettivo'), h('p', {}, c.goal)));
@@ -183,9 +212,7 @@ function screenGiallo() {
   out.push(boxStanze());
   if (g.accuse && !g.solved) out.push(...boxAccusa());
   if (g.solved) out.push(...boxSoluzione());
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'),
-    g.narrator ? h('div', { class: 'team' }, h('strong', {}, GIALLO.ottavio.name), h('span', { class: 'sub' }, GIALLO.ottavio.role + ' · ' + g.narrator + ', narratore')) : null,
-    g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'team' + (a.p === me ? ' mine' : '') }, h('strong', {}, x.name), h('span', { class: 'sub' }, x.role + ' · ' + a.p)); })));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'), galleria(g.assign, true)));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Le regole'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r)))));
   return out;
 }
@@ -198,44 +225,45 @@ function boxStanze(all) {
 function screenNarratore() {
   const g = state.giallo; const out = [];
   const O = GIALLO.ottavio;
-  out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Il tuo ruolo · narratore'), h('p', { class: 'big-dish' }, O.name),
+  out.push(h('div', { class: 'box gold' }, ritratto('ottavio'), h('h3', {}, 'Il tuo ruolo · narratore'), h('p', { class: 'big-dish' }, O.name),
     h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + O.costume),
     h('p', {}, 'Nel prologo sei vivo: accogli gli ospiti, brindi e muori. Poi torni come fantasma e guidi la serata. Giri, accuse e soluzione si comandano dalla Regia.'),
     admin ? h('button', { class: 'btn', onclick: () => go('regia') }, 'Vai alla Regia') : null));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il brindisi di Ottavio · verso le 19:45'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Una battuta per ogni ospite'), h('p', { class: 'small' }, 'Dille durante l’aperitivo, a ciascuno: lì per lì non significano niente, si capiscono dopo.'),
-    h('div', { class: 'list' }, g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), O.lines[a.c] || '')); }))));
+    h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), O.lines[a.c] || '')); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
     h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
   out.push(boxStanze(true));
-  const who = g.assign.find(a => a.c === GIALLO.culprit)?.p;
+  const ca = g.assign.find(a => a.c === GIALLO.culprit); const who = ca?.p;
   out.push(h('div', { class: 'envelope' }, h('h3', {}, 'Solo per te · la soluzione'),
-    h('p', { class: 'winner' }, charById(GIALLO.culprit).name + (who ? ' (' + who + ')' : '')), h('p', {}, GIALLO.solution)));
+    h('p', { class: 'winner' }, (ca ? pers(ca).name : charById(GIALLO.culprit).name) + (who ? ' (' + who + ')' : '')), h('p', {}, GIALLO.solution)));
   if (g.accuse || g.solved) out.push(...boxSoluzioneConteggio());
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'),
-    g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'team' }, h('strong', {}, x.name), h('span', { class: 'sub' }, x.role + ' · ' + a.p + ' · ' + x.costume)); })));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'), galleria(g.assign, false),
+    h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.name + ': '), charById(a.c).costume)); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Solo per te · chi era dove tra le 19:55 e le 20:05'),
-    h('div', { class: 'list' }, g.assign.map(a => { const x = charById(a.c); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), x.where || '')); }))));
+    h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), charById(a.c).where || '')); }))));
   return out;
 }
+const nomeDi = id => { const a = state.giallo.assign.find(x => x.c === id); return a ? pers(a).name : charById(id).name; };
 function boxSoluzioneConteggio() {
   const t = {}; for (const a of accuse) t[a.suspect] = (t[a.suspect] || 0) + 1;
   const rows = Object.entries(t).sort((a, b) => b[1] - a[1]); const top = rows.length ? rows[0][1] : 0;
   return [h('div', { class: 'box' }, h('h3', {}, `Accuse · ${accuse.length} su ${state.giallo.assign.length}`),
-    rows.length ? h('div', { class: 'tally' }, rows.map(([id, k]) => h('div', {}, h('span', {}, charById(id).name), h('span', { class: 'count' }, `${k} ${k === 1 ? 'accusa' : 'accuse'}`),
+    rows.length ? h('div', { class: 'tally' }, rows.map(([id, k]) => h('div', {}, h('span', {}, nomeDi(id)), h('span', { class: 'count' }, `${k} ${k === 1 ? 'accusa' : 'accuse'}`),
       h('span', { class: 'bar' }, h('i', { style: `width:${top ? k / top * 100 : 0}%` }))))) : h('p', { class: 'sub' }, 'Ancora nessuna accusa.'))];
 }
 let suspect = null;
 function boxAccusa() {
   const mine = myAccusa();
-  if (mine) return [h('div', { class: 'box reveal' }, h('h3', {}, 'Accusa registrata'), h('h2', {}, 'Hai accusato ' + charById(mine.suspect).name),
+  if (mine) return [h('div', { class: 'box reveal' }, h('h3', {}, 'Accusa registrata'), h('h2', {}, 'Hai accusato ' + nomeDi(mine.suspect)),
     h('p', { class: 'sub' }, `Hanno accusato ${accuse.length} su ${state.giallo.assign.length}. La soluzione arriva tra poco.`))];
   const myId = state.giallo.assign.find(x => x.p === me)?.c;
   return [h('div', { class: 'box' }, h('h3', {}, 'Le accuse'), h('h2', {}, 'Chi ha ucciso Ottavio?'),
     h('p', { class: 'sub' }, 'Una sola accusa, segreta e definitiva.'),
-    h('div', { class: 'nominees' }, state.giallo.assign.filter(a => a.c !== myId).map(a => { const x = charById(a.c);
-      return h('button', { class: 'nominee', 'aria-pressed': suspect === x.id ? 'true' : 'false', onclick: () => { suspect = x.id; render(); } }, x.name, h('small', {}, x.role + ' · ' + a.p)); })),
+    h('div', { class: 'nominees' }, state.giallo.assign.filter(a => a.c !== myId).map(a => { const x = pers(a);
+      return h('button', { class: 'nominee', 'aria-pressed': suspect === a.c ? 'true' : 'false', onclick: () => { suspect = a.c; render(); } }, x.name, h('small', {}, x.role + ' · ' + a.p)); })),
     h('button', { class: 'btn big', disabled: !suspect, onclick: castAccusa }, 'Accusa'))];
 }
 async function castAccusa() {
@@ -243,12 +271,12 @@ async function castAccusa() {
   catch (e) { error = 'L’accusa non è stata salvata (' + e.code + '). Se avevi già accusato non puoi cambiarla.'; render(); }
 }
 function boxSoluzione() {
-  const culprit = charById(GIALLO.culprit); const who = state.giallo.assign.find(a => a.c === GIALLO.culprit)?.p;
+  const culprit = { name: nomeDi(GIALLO.culprit) }; const who = state.giallo.assign.find(a => a.c === GIALLO.culprit)?.p;
   const t = {}; for (const a of accuse) t[a.suspect] = (t[a.suspect] || 0) + 1;
   const rows = Object.entries(t).sort((a, b) => b[1] - a[1]); const top = rows.length ? rows[0][1] : 0;
   const right = accuse.filter(a => a.suspect === GIALLO.culprit).map(a => a.voter);
   return [h('div', { class: 'envelope reveal' }, h('h3', {}, 'La soluzione'), h('p', { class: 'winner' }, culprit.name + (who ? ' (' + who + ')' : '')), h('p', {}, GIALLO.solution),
-    h('h3', {}, 'Le accuse'), h('div', { class: 'tally' }, rows.map(([id, k]) => h('div', {}, h('span', {}, charById(id).name), h('span', { class: 'count' }, `${k} ${k === 1 ? 'accusa' : 'accuse'}`),
+    h('h3', {}, 'Le accuse'), h('div', { class: 'tally' }, rows.map(([id, k]) => h('div', {}, h('span', {}, nomeDi(id)), h('span', { class: 'count' }, `${k} ${k === 1 ? 'accusa' : 'accuse'}`),
       h('span', { class: 'bar' }, h('i', { style: `width:${top ? k / top * 100 : 0}%` }))))),
     h('p', { class: 'sub' }, right.length ? 'Hanno indovinato: ' + right.join(', ') : 'Nessuno ha indovinato: il colpevole l’ha fatta franca.'))];
 }
@@ -271,8 +299,11 @@ function screenRegia() {
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Partecipanti · ' + state.people.length),
     locked ? h('p', { class: 'small' }, 'Sorteggio fatto: per cambiare i nomi rifai il sorteggio.') : h('div', { class: 'row' }, inp, h('button', { class: 'btn', onclick: add }, 'Aggiungi')),
     state.people.length ? h('div', { class: 'row' }, state.people.map(p => h('span', { class: 'chip' }, p,
+      h('span', { class: 'sx' }, ['M', 'F'].map(s => h('button', { 'aria-pressed': state.sesso[p] === s ? 'true' : 'false', 'aria-label': p + (s === 'M' ? ': maschio' : ': femmina'),
+        onclick: () => patch({ sesso: { ...state.sesso, [p]: s } }) }, s))),
       locked ? null : h('button', { 'aria-label': 'Togli ' + p, onclick: () => patch({ people: state.people.filter(x => x !== p) }) }, '×'))))
-      : h('p', { class: 'sub' }, 'Aggiungi i nomi: compariranno a tutti nella schermata “Chi sei?”.')));
+      : h('p', { class: 'sub' }, 'Aggiungi i nomi: compariranno a tutti nella schermata “Chi sei?”.'),
+    state.people.some(p => !state.sesso[p]) ? h('p', { class: 'small' }, 'Tocca M o F accanto a ogni nome: serve per il nome e il ritratto del personaggio nel giallo.') : null));
   // sorteggio
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Sorteggio squadre e menu'),
     h('p', { class: 'sub' }, locked ? 'Squadre estratte: le vede già chiunque apra l’app.' : `Con ${state.people.length} persone escono ${Math.min(5, state.people.length)} squadre, ognuna con un menu.`),
