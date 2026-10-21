@@ -2,7 +2,12 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, PROGRAM, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, tally, assignCharacters } from './logic.js';
-import { GIALLO } from './giallo.js';
+import { GIALLO as G_CAP, GIALLO_H } from './giallo.js';
+let GIALLO = G_CAP;
+// ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
+const SOLO = new URLSearchParams(location.search).has('giallo');
+const HOME = SOLO ? 'giallo' : 'squadra';
+if (SOLO) document.title = 'Delitto a Villa Ferraris';
 import { NOMI, caricaRitratti } from './ritratti.js';
 
 /* ---------- stato ---------- */
@@ -15,7 +20,7 @@ let ballots = [];           // [{id, voter, votes, at}]
 let loaded = false;
 let me = load('me');
 let admin = load('admin') === '1';
-let tab = me ? 'squadra' : 'chi';
+let tab = me ? HOME : 'chi';
 let flow = null;            // voto in corso: {i, votes}
 let confirm = null;         // conferme in pagina: 'draw' | 'open' | 'reset'
 let error = '';
@@ -32,6 +37,7 @@ if (configured) {
   onSnapshot(stateRef, snap => {
     const v = snap.exists() ? snap.data() : {};
     state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], giallo: { ...NO_GIALLO, ...(v.giallo || {}) } };
+    GIALLO = state.giallo.versione === 'halloween' ? GIALLO_H : G_CAP;
     loaded = true;
     if (me && !state.people.includes(me)) { me = null; save('me', null); if (tab !== 'regia') tab = 'chi'; }
     render();
@@ -72,7 +78,7 @@ function screenChi() {
   return [h('div', { class: 'box' },
     h('h3', {}, 'Benvenuto'), h('h2', {}, 'Chi sei?'),
     h('p', { class: 'sub' }, 'Tocca il tuo nome: il telefono se lo ricorda.'),
-    h('div', { class: 'names' }, state.people.map(p => h('button', { class: 'name', onclick: () => { me = p; save('me', p); go('squadra'); } }, p))))];
+    h('div', { class: 'names' }, state.people.map(p => h('button', { class: 'name', onclick: () => { me = p; save('me', p); go(HOME); } }, p))))];
 }
 
 function screenProgramma() {
@@ -188,7 +194,7 @@ const myAccusa = () => me && accuse.find(a => a.id === slug(me));
 
 function screenGiallo() {
   const g = state.giallo; const out = [];
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, GIALLO.setting)));
+  out.push(h('div', { class: 'box' }, h('h3', {}, state.giallo.versione === 'halloween' ? 'Cena con delitto · Halloween' : 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, GIALLO.setting)));
   if (!g.assign.length) {
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Come funziona'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r))),
       h('p', { class: 'small' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei e cosa indossare.')));
@@ -305,7 +311,7 @@ function screenRegia() {
       : h('p', { class: 'sub' }, 'Aggiungi i nomi: compariranno a tutti nella schermata “Chi sei?”.'),
     state.people.some(p => !state.sesso[p]) ? h('p', { class: 'small' }, 'Tocca M o F accanto a ogni nome: serve per il nome e il ritratto del personaggio nel giallo.') : null));
   // sorteggio
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Sorteggio squadre e menu'),
+  if (!SOLO) out.push(h('div', { class: 'box' }, h('h3', {}, 'Sorteggio squadre e menu'),
     h('p', { class: 'sub' }, locked ? 'Squadre estratte: le vede già chiunque apra l’app.' : `Con ${state.people.length} persone escono ${Math.min(5, state.people.length)} squadre, ognuna con un menu.`),
     confirm === 'draw'
       ? h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => { confirm = null; patch({ teams: draw(state.people) }); } }, locked ? 'Sì, rifai il sorteggio' : 'Sì, sorteggia'),
@@ -329,17 +335,21 @@ function screenRegia() {
     : h('button', { class: 'btn', disabled: !accuse.length, onclick: () => { confirm = 'gsolve'; render(); } }, 'Rivela la soluzione'));
   const accused = new Set(accuse.map(a => a.id));
   const mancanoG = g.assign.filter(a => !accused.has(slug(a.p))).map(a => a.p);
+  const ver = g.versione === 'halloween' ? 'halloween' : 'capodanno';
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto'),
+    h('div', { class: 'row' }, h('span', { class: 'sub' }, 'Ambientazione:'),
+      h('span', { class: 'sx' }, [['capodanno', 'Capodanno'], ['halloween', 'Halloween']].map(([id, l]) => h('button', { 'aria-pressed': ver === id ? 'true' : 'false',
+        disabled: g.round > 0 && ver !== id, onclick: () => patch({ giallo: { ...g, versione: id } }) }, l)))),
     !me ? h('p', { class: 'small' }, 'Prima scegli il tuo nome in “Chi sei?”: sarai il narratore e non riceverai un personaggio.') : null,
     h('p', { class: 'sub' }, !g.assign.length ? `Assegna i personaggi una settimana prima. Tu sei il narratore; per gli altri ${Math.max(0, state.people.length - (me ? 1 : 0))} servono ${Math.min(Math.max(0, state.people.length - (me ? 1 : 0)), GIALLO.order.length)} personaggi su ${GIALLO.order.length}.`
       : g.solved ? 'Soluzione rivelata.' : g.accuse ? `Accuse: ${accuse.length} su ${g.assign.length}.` : g.round ? `Giro ${g.round} di 3 sbloccato.` : `${g.assign.length} personaggi assegnati: ognuno vede il suo nell’app.`),
     g.accuse && !g.solved && mancanoG.length ? h('p', { class: 'small' }, 'Mancano: ' + mancanoG.join(', ')) : null,
-    g.assign.length ? h('p', { class: 'small' }, 'Narratore: ' + (g.narrator || '—') + '. La sera del 31 segui il copione nella scheda Giallo e sblocca un giro a ogni portata.') : null,
+    g.assign.length ? h('p', { class: 'small' }, 'Narratore: ' + (g.narrator || '—') + '. La sera della cena segui il copione nella scheda Giallo e sblocca un giro a ogni portata.') : null,
     h('div', { class: 'row' }, gBtns)));
   // urne
   const voted = new Set(ballots.map(b => b.id));
   const missing = state.people.filter(p => !voted.has(slug(p)));
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Oscar'),
+  if (!SOLO) out.push(h('div', { class: 'box' }, h('h3', {}, 'Oscar'),
     h('div', { class: 'row', style: 'justify-content:space-between' }, h('span', {}, state.opened ? 'Buste aperte' : state.votingOpen ? 'Urne aperte' : 'Urne chiuse'),
       h('span', { class: 'count' }, `${ballots.length} su ${state.people.length} schede`)),
     h('div', { class: 'meter' }, h('i', { style: `width:${state.people.length ? ballots.length / state.people.length * 100 : 0}%` })),
@@ -367,26 +377,27 @@ async function resetAll() {
     await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
     const snap2 = await getDocs(collection(db, 'accuse'));
     await Promise.all(snap2.docs.map(d => deleteDoc(d.ref)));
-    await patch({ teams: [], votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO });
+    await patch({ teams: [], votingOpen: false, opened: false, revealed: [], giallo: { ...NO_GIALLO, versione: state.giallo.versione || 'capodanno' } });
   } catch (e) { error = 'Non sono riuscito ad azzerare (' + e.code + ').'; render(); }
 }
 
 /* ---------- impaginazione ---------- */
 function render() {
   const app = document.getElementById('app'); const nav = document.getElementById('tabs');
-  const head = h('header', {}, h('p', { class: 'eyebrow' }, 'Isola Sant’Antonio · 30.12 – 1.1'),
-    h('h1', {}, 'Capodanno ', h('em', {}, 'a Isola')),
+  const head = h('header', {}, h('p', { class: 'eyebrow' }, SOLO ? (state.giallo.versione === 'halloween' ? 'Cena con delitto · Halloween' : 'Cena con delitto') : 'Isola Sant’Antonio · 30.12 – 1.1'),
+    SOLO ? h('h1', {}, 'Delitto ', h('em', {}, 'a Villa Ferraris')) : h('h1', {}, 'Capodanno ', h('em', {}, 'a Isola')),
     me && tab !== 'chi' ? h('p', { class: 'small' }, 'Sei ', h('strong', {}, me), ' · ',
       h('button', { class: 'btn ghost', style: 'padding:4px 10px;min-height:32px;font-size:13px', onclick: () => { me = null; save('me', null); go('chi'); } }, 'Non sono io')) : null);
   let body;
   if (!configured) body = [h('div', { class: 'warn' }, 'App non ancora collegata a Firebase: incolla la configurazione in config.js (vedi LEGGIMI).')];
   else if (!loaded) body = [h('p', { class: 'sub' }, 'Caricamento…')];
+  else if (SOLO && !['chi', 'giallo', 'regia'].includes(tab)) { tab = me ? 'giallo' : 'chi'; body = me ? screenGiallo() : screenChi(); }
   else if (tab === 'chi' || (!me && tab !== 'regia' && tab !== 'programma')) body = screenChi();
   else body = { programma: screenProgramma, squadra: screenSquadra, giallo: screenGiallo, oscar: screenOscar, regia: screenRegia }[tab]();
   const foot = !admin && tab !== 'regia' && configured ? h('button', { class: 'btn ghost', style: 'align-self:center;font-size:13px;min-height:36px;padding:6px 14px;opacity:.7', onclick: () => go('regia') }, 'Area organizzatore') : null;
   app.replaceChildren(...[head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body, foot].filter(Boolean));
   // barra in basso
-  const tabs = [['programma', 'Programma'], ['squadra', 'Squadra'], ['giallo', 'Giallo'], ['oscar', 'Oscar']];
+  const tabs = SOLO ? [['giallo', 'Giallo']] : [['programma', 'Programma'], ['squadra', 'Squadra'], ['giallo', 'Giallo'], ['oscar', 'Oscar']];
   if (admin) tabs.push(['regia', 'Regia']);
   nav.style.setProperty('--n', tabs.length);
   nav.replaceChildren(...tabs.map(([id, label]) => h('button', { 'aria-current': tab === id ? 'page' : null, onclick: () => go(me || id === 'programma' || id === 'regia' ? id : 'chi') }, label)));
