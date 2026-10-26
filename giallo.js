@@ -318,9 +318,32 @@ const HDATA = [
   "wrsiXSxbIkNvdW50ZG93biwgYnJpbmRpc2kgZSBhdWd1cmkuIFBvaSBwYXJ0eSBnYW1lLiIsIkJyaW5kaXNpLCBkb2xjZXR0byBvIHNjaGVyemV0dG8gZSBw",
   "YXJ0eSBnYW1lLiJdLFsiQW1pY2ksIHBhcmVudGksIGNvbGxhYm9yYXRvcmk6IGdyYXppZSBkaSBlc3NlcmUgcXVpIGEgVmlsbGEgRmVycmFyaXMuIiwiQW1p",
   "Y2ksIHBhcmVudGksIGNvbGxhYm9yYXRvcmk6IGdyYXppZSBkaSBlc3NlcmUgcXVpIGEgVmlsbGEgRmVycmFyaXMsIG5lbGxhIG5vdHRlIGRlbGxlIHN0cmVn",
-  "aGUuIl1d"
+  "aGUuIl0sWyJDb3RlY2hpbm8gZSBsZW50aWNjaGllIMK3IGdpcm8gMyIsIlNlY29uZG8gwrcgZ2lybyAzIl1d"
+].join("");
+// Accordi al femminile per chi interpreta il personaggio (sostituzioni sul testo, per personaggio).
+const FDATA = [
+  "eyJtb3JldHRpIjpbWyJTZWkgdHUgaWwgY29scGV2b2xlIiwiU2VpIHR1IGxhIGNvbHBldm9sZSJdLFsic2VpIHVzY2l0byIsInNlaSB1c2NpdGEiXSxbIlNl",
+  "aSBlbnRyYXRvIiwiU2VpIGVudHJhdGEiXSxbIklsIG1pbyBhcHByZW5kaXN0YSIsIkxhIG1pYSBhcHByZW5kaXN0YSJdXSwiY2FudHUiOltbInNhcmFpIGls",
+  "IHByaW1vIHNvc3BldHRhdG8iLCJzYXJhaSBsYSBwcmltYSBzb3NwZXR0YXRhIl1dLCJiZWxsaW5pIjpbWyJzZWkgZW50cmF0byIsInNlaSBlbnRyYXRhIl0s",
+  "WyJzZWkgcmltYXN0byIsInNlaSByaW1hc3RhIl1dLCJwb3p6aSI6W1sidGkgaGEgcmFnZ2l1bnRvIiwidGkgaGEgcmFnZ2l1bnRhIl1dLCJjdWdpbm8iOltb",
+  "IlNlaSBhcnJpdmF0byIsIlNlaSBhcnJpdmF0YSJdLFsiU2VpIHVzY2l0byBmdXJpb3NvIiwiU2VpIHVzY2l0YSBmdXJpb3NhIl0sWyJTZWkgdXNjaXRvIiwi",
+  "U2VpIHVzY2l0YSJdLFsic2VpIGVudHJhdG8iLCJzZWkgZW50cmF0YSJdLFsic2FyYWkgaWwgcHJpbW8gc29zcGV0dGF0byIsInNhcmFpIGxhIHByaW1hIHNv",
+  "c3BldHRhdGEiXSxbImRlbGxvIHN0cmFuaWVybyIsImRlbGxhIHN0cmFuaWVyYSJdLFsidGkgaGEgY2FjY2lhdG8iLCJ0aSBoYSBjYWNjaWF0YSJdXSwiZXJl",
+  "ZGUiOltbIlNlaSBs4oCZdW5pY28gbmlwb3RlIGRpIE90dGF2aW8gZSBmaW5vIGEgc3Rhc2VyYSBpbCBzdW8gdW5pY28gZXJlZGUiLCJTZWkgbOKAmXVuaWNh",
+  "IG5pcG90ZSBkaSBPdHRhdmlvIGUgZmlubyBhIHN0YXNlcmEgbGEgc3VhIHVuaWNhIGVyZWRlIl0sWyJzZWkgaWwgcHJpbW8gc29zcGV0dGF0byIsInNlaSBs",
+  "YSBwcmltYSBzb3NwZXR0YXRhIl0sWyJDYXJvIG5pcG90ZSwgdGkgaG8gdHJhdHRhdG8gY29tZSB1biBmaWdsaW8iLCJDYXJhIG5pcG90ZSwgdGkgaG8gdHJh",
+  "dHRhdGEgY29tZSB1bmEgZmlnbGlhIl0sWyJUaSBobyB0cmF0dGF0byBjb21lIHVuIGZpZ2xpbyIsIlRpIGhvIHRyYXR0YXRhIGNvbWUgdW5hIGZpZ2xpYSJd",
+  "XSwic2FyZGkiOltbInNlaSB1c2NpdG8iLCJzZWkgdXNjaXRhIl0sWyJzZWkgcmltYXN0byIsInNlaSByaW1hc3RhIl1dLCJyaW5hbGRpIjpbWyJEb3R0b3Jl",
+  "LCBsYSBzdWEiLCJEb3R0b3Jlc3NhLCBsYSBzdWEiXV0sImRlbGxhdmFsbGUiOltbIlNlaSBpbCBwacO5IGdyYW5kZSBjb25jb3JyZW50ZSIsIlNlaSBsYSBw",
+  "acO5IGdyYW5kZSBjb25jb3JyZW50ZSJdLFsic2VpIGzigJl1bmljbyBjaGUiLCJzZWkgbOKAmXVuaWNhIGNoZSJdLFsidGkgaGEgaW52aXRhdG8iLCJ0aSBo",
+  "YSBpbnZpdGF0YSJdXSwiZmVycmVybyI6W1siQXZ2b2NhdG8sIGRvbWF0dGluYSIsIkF2dm9jYXRhLCBkb21hdHRpbmEiXV0sImdhdHRpIjpbWyJ0aSBzZWkg",
+  "aW5maWxhdG8iLCJ0aSBzZWkgaW5maWxhdGEiXSxbInNlaSBlbnRyYXRvIiwic2VpIGVudHJhdGEiXV0sImJhc3NpIjpbWyJFcmkgZ2lyYXRvIiwiRXJpIGdp",
+  "cmF0YSJdXX0="
 ].join("");
 const dec = s => new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0)));
 const TXT = dec(DATA);
 export const GIALLO = JSON.parse(TXT);
 export const GIALLO_H = JSON.parse(JSON.parse(dec(HDATA)).reduce((t, [a, b]) => t.split(a).join(b), TXT));
+
+const FEM = JSON.parse(dec(FDATA));
+export const femminile = (id, t) => (FEM[id] || []).reduce((x, [a, b]) => x.split(a).join(b), t);

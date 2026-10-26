@@ -2,7 +2,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, PROGRAM, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, tally, assignCharacters } from './logic.js';
-import { GIALLO as G_CAP, GIALLO_H } from './giallo.js';
+import { GIALLO as G_CAP, GIALLO_H, femminile } from './giallo.js';
 let GIALLO = G_CAP;
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
@@ -173,7 +173,7 @@ function ritratto(key, cls) {
   const svg = key && RITRATTI[key];
   return svg ? h('img', { class: cls || 'ritratto', alt: '', src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) }) : null;
 }
-const genere = (t, s) => !s ? t : t.replace(/un figlio o una figlia/g, s === 'F' ? 'una figlia' : 'un figlio');
+const genere = (t, s, id) => !s ? t : s === 'F' ? femminile(id, t.replace(/un figlio o una figlia/g, 'una figlia')) : t.replace(/un figlio o una figlia/g, 'un figlio');
 (() => { const st = document.createElement('style'); st.textContent =
   '.ritratto{display:block;width:min(240px,70%);margin:0 auto 4px;aspect-ratio:540/620;filter:drop-shadow(0 6px 16px rgba(0,0,0,.35))}' +
   '.galleria{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}' +
@@ -205,13 +205,13 @@ function screenGiallo() {
   if (c) {
     const x = pers(state.giallo.assign.find(a => a.p === me));
     out.push(h('div', { class: 'box gold reveal' }, ritratto(x.key), h('h3', {}, 'Il tuo personaggio · ' + x.role), h('p', { class: 'big-dish' }, x.name),
-      h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + c.costume), h('p', {}, genere(c.intro, x.sesso))));
-    out.push(h('div', { class: 'box' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, c.secret),
+      h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + c.costume), h('p', {}, genere(c.intro, x.sesso, c.id))));
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
       c.where ? h('h3', {}, 'Dove eri davvero · 19:55–20:05') : null, c.where ? h('p', {}, c.where) : null,
-      h('h3', {}, 'Il tuo obiettivo'), h('p', {}, c.goal)));
+      h('h3', {}, 'Il tuo obiettivo'), h('p', {}, genere(c.goal, x.sesso, c.id))));
     out.push(h('div', { class: 'box' }, h('h3', {}, 'I tuoi indizi'),
       h('div', { class: 'list' }, c.clues.map((t, i) => h('div', { class: 'item' }, h('b', {}, 'Giro ' + (i + 1)),
-        g.round > i ? h('span', {}, t) : h('span', { class: 'small' }, 'Si sblocca durante la cena'))))));
+        g.round > i ? h('span', {}, genere(t, x.sesso, c.id)) : h('span', { class: 'small' }, 'Si sblocca durante la cena'))))));
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
   }
@@ -237,7 +237,7 @@ function screenNarratore() {
     admin ? h('button', { class: 'btn', onclick: () => go('regia') }, 'Vai alla Regia') : null));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il brindisi di Ottavio · verso le 19:45'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Una battuta per ogni ospite'), h('p', { class: 'small' }, 'Dille durante l’aperitivo, a ciascuno: lì per lì non significano niente, si capiscono dopo.'),
-    h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), O.lines[a.c] || '')); }))));
+    h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), genere(O.lines[a.c] || '', x.sesso, a.c))); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
     h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
