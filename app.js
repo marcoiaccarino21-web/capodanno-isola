@@ -8,6 +8,7 @@ const SOLO = new URLSearchParams(location.search).has('giallo');
 const HOME = SOLO ? 'giallo' : 'squadra';
 if (SOLO) document.title = 'Delitto a Villa Ferraris';
 import { NOMI, caricaRitratti } from './ritratti.js';
+import { ACCESSORI, cartellino, pdfDi, PDF_TUTTI } from './accessori.js';
 
 /* ---------- stato ---------- */
 const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null };
@@ -179,13 +180,23 @@ const genere = (t, s, id) => !s ? t : s === 'F' ? femminile(id, t.replace(/un fi
   '.galleria img,.galleria .vuoto{width:100%;aspect-ratio:540/620}.galleria .vuoto{border:2px solid var(--line);border-radius:50%/44%}' +
   '.galleria b{font-family:var(--display);font-size:14px;line-height:1.15}.galleria small{color:var(--faint);font-size:12px;line-height:1.2}.galleria .mine b{color:var(--gold)}' +
   '.sx{display:inline-flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}.sx button{background:none;border:0;color:var(--faint);font:700 12px var(--body);padding:4px 9px;min-height:30px;cursor:pointer}' +
-  '.sx button[aria-pressed="true"]{background:var(--gold);color:var(--night)}';
+  '.sx button[aria-pressed="true"]{background:var(--gold);color:var(--night)}' +
+  '.cartellino{width:min(300px,82%);margin:0 auto}.cartellino svg{display:block;width:100%;height:auto;filter:drop-shadow(0 6px 16px rgba(0,0,0,.35))}';
   document.head.append(st); })();
 function galleria(list, withNarrator) {
   const g = state.giallo;
   const figs = list.map(a => { const x = pers(a); return h('figure', { class: a.p === me ? 'mine' : null }, ritratto(x.key, ' ') || h('div', { class: 'vuoto' }), h('b', {}, x.name), h('small', {}, x.role + ' · ' + a.p)); });
   if (withNarrator && g.narrator) figs.unshift(h('figure', {}, ritratto('ottavio', ' '), h('b', {}, GIALLO.ottavio.name), h('small', {}, 'La vittima · ' + g.narrator)));
   return h('div', { class: 'galleria' }, figs);
+}
+// cartellino di carta da stampare al posto del travestimento
+function svgEl(svg, cls) { const d = h('div', { class: cls }); d.innerHTML = svg; return d; }
+function boxCartellino(id, name, role, sesso, intro) {
+  return h('div', { class: 'box' }, h('h3', {}, 'Il tuo accessorio da stampare'),
+    h('p', { class: 'sub' }, intro || ('Niente travestimento: stampa questo cartellino (' + ACCESSORI[id].cosa.toLowerCase() + '), ritaglialo e portalo a tracolla la sera del 31.')),
+    svgEl(cartellino(id, name, role, 'mio' + id), 'cartellino'),
+    h('a', { class: 'btn big', href: pdfDi(id, sesso), download: '', style: 'text-align:center;text-decoration:none' }, 'Scarica il PDF da stampare'),
+    h('p', { class: 'small' }, 'Stampa al 100% (dimensione reale), meglio su cartoncino. Fai un foro nel cerchio tratteggiato e passaci uno spago o un nastro.'));
 }
 const myChar = () => { const a = state.giallo.assign.find(x => x.p === me); return a && charById(a.c); };
 const myAccusa = () => me && accuse.find(a => a.id === slug(me));
@@ -195,7 +206,7 @@ function screenGiallo() {
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, GIALLO.setting)));
   if (!g.assign.length) {
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Come funziona'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r))),
-      h('p', { class: 'small' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei e cosa indossare.')));
+      h('p', { class: 'small' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei e scaricherai il cartellino da stampare al posto del travestimento.')));
     return out;
   }
   if (me && me === g.narrator) return [...out, ...screenNarratore()];
@@ -203,7 +214,8 @@ function screenGiallo() {
   if (c) {
     const x = pers(state.giallo.assign.find(a => a.p === me));
     out.push(h('div', { class: 'box gold reveal' }, ritratto(x.key), h('h3', {}, 'Il tuo personaggio · ' + x.role), h('p', { class: 'big-dish' }, x.name),
-      h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + c.costume), h('p', {}, genere(c.intro, x.sesso, c.id))));
+      h('p', { style: 'font-size:16px;font-weight:600' }, 'Il tuo accessorio: ' + ACCESSORI[c.id].cosa), h('p', {}, genere(c.intro, x.sesso, c.id))));
+    if (!g.round) out.push(boxCartellino(c.id, x.name, x.role, x.sesso));
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
       c.where ? h('h3', {}, 'Dove eri davvero · 19:55–20:05') : null, c.where ? h('p', {}, c.where) : null,
       h('h3', {}, 'Il tuo obiettivo'), h('p', {}, genere(c.goal, x.sesso, c.id))));
@@ -230,9 +242,11 @@ function screenNarratore() {
   const g = state.giallo; const out = [];
   const O = GIALLO.ottavio;
   out.push(h('div', { class: 'box gold' }, ritratto('ottavio'), h('h3', {}, 'Il tuo ruolo · narratore'), h('p', { class: 'big-dish' }, O.name),
-    h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + O.costume),
+    h('p', { style: 'font-size:16px;font-weight:600' }, 'Il tuo accessorio: ' + ACCESSORI.ottavio.cosa),
     h('p', {}, 'Nel prologo sei vivo: accogli gli ospiti, brindi e muori. Poi torni come fantasma e guidi la serata. Giri, accuse e soluzione si comandano dalla Regia.'),
     admin ? h('button', { class: 'btn', onclick: () => go('regia') }, 'Vai alla Regia') : null));
+  out.push(boxCartellino('ottavio', O.name, 'Maestro orafo', null, 'Anche tu hai il cartellino da stampare. Se stampi per tutti, il PDF unico qui sotto ha i cartellini di ogni personaggio, al maschile e al femminile.'));
+  out.push(h('a', { class: 'btn ghost big', href: PDF_TUTTI, download: '', style: 'text-align:center;text-decoration:none' }, 'PDF con tutti i cartellini (A4, 4 per pagina)'));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il brindisi di Ottavio · verso le 19:45'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Una battuta per ogni ospite'), h('p', { class: 'small' }, 'Dille durante l’aperitivo, a ciascuno: lì per lì non significano niente, si capiscono dopo.'),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), genere(O.lines[a.c] || '', x.sesso, a.c))); }))));
@@ -245,7 +259,7 @@ function screenNarratore() {
     h('p', { class: 'winner' }, (ca ? pers(ca).name : charById(GIALLO.culprit).name) + (who ? ' (' + who + ')' : '')), h('p', {}, GIALLO.solution)));
   if (g.accuse || g.solved) out.push(...boxSoluzioneConteggio());
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'), galleria(g.assign, false),
-    h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.name + ': '), charById(a.c).costume)); }))));
+    h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.name + ': '), ACCESSORI[a.c].cosa + (x.sesso === 'F' ? ' (versione F)' : ' (versione M)'))); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Solo per te · chi era dove tra le 19:55 e le 20:05'),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), charById(a.c).where || '')); }))));
   return out;
@@ -339,7 +353,8 @@ function screenRegia() {
       : g.solved ? 'Soluzione rivelata.' : g.accuse ? `Accuse: ${accuse.length} su ${g.assign.length}.` : g.round ? `Giro ${g.round} di 3 sbloccato.` : `${g.assign.length} personaggi assegnati: ognuno vede il suo nell’app.`),
     g.accuse && !g.solved && mancanoG.length ? h('p', { class: 'small' }, 'Mancano: ' + mancanoG.join(', ')) : null,
     g.assign.length ? h('p', { class: 'small' }, 'Narratore: ' + (g.narrator || '—') + '. La sera della cena segui il copione nella scheda Giallo e sblocca un giro a ogni portata.') : null,
-    h('div', { class: 'row' }, gBtns)));
+    h('div', { class: 'row' }, gBtns),
+    h('a', { class: 'btn ghost', href: PDF_TUTTI, download: '', style: 'text-align:center;text-decoration:none' }, 'PDF con tutti i cartellini da stampare')));
   // urne
   const voted = new Set(ballots.map(b => b.id));
   const missing = state.people.filter(p => !voted.has(slug(p)));
