@@ -2,8 +2,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, PROGRAM, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, tally, assignCharacters } from './logic.js';
-import { GIALLO as G_CAP, GIALLO_H, femminile } from './giallo.js';
-let GIALLO = G_CAP;
+import { GIALLO, femminile } from './giallo.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
 const HOME = SOLO ? 'giallo' : 'squadra';
@@ -37,7 +36,6 @@ if (configured) {
   onSnapshot(stateRef, snap => {
     const v = snap.exists() ? snap.data() : {};
     state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], giallo: { ...NO_GIALLO, ...(v.giallo || {}) } };
-    GIALLO = state.giallo.versione === 'halloween' ? GIALLO_H : G_CAP;
     loaded = true;
     if (me && !state.people.includes(me)) { me = null; save('me', null); if (tab !== 'regia') tab = 'chi'; }
     render();
@@ -194,7 +192,7 @@ const myAccusa = () => me && accuse.find(a => a.id === slug(me));
 
 function screenGiallo() {
   const g = state.giallo; const out = [];
-  out.push(h('div', { class: 'box' }, h('h3', {}, state.giallo.versione === 'halloween' ? 'Cena con delitto · Halloween' : 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, GIALLO.setting)));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, GIALLO.setting)));
   if (!g.assign.length) {
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Come funziona'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r))),
       h('p', { class: 'small' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei e cosa indossare.')));
@@ -335,11 +333,7 @@ function screenRegia() {
     : h('button', { class: 'btn', disabled: !accuse.length, onclick: () => { confirm = 'gsolve'; render(); } }, 'Rivela la soluzione'));
   const accused = new Set(accuse.map(a => a.id));
   const mancanoG = g.assign.filter(a => !accused.has(slug(a.p))).map(a => a.p);
-  const ver = g.versione === 'halloween' ? 'halloween' : 'capodanno';
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto'),
-    h('div', { class: 'row' }, h('span', { class: 'sub' }, 'Ambientazione:'),
-      h('span', { class: 'sx' }, [['capodanno', 'Capodanno'], ['halloween', 'Halloween']].map(([id, l]) => h('button', { 'aria-pressed': ver === id ? 'true' : 'false',
-        disabled: g.round > 0 && ver !== id, onclick: () => patch({ giallo: { ...g, versione: id } }) }, l)))),
     !me ? h('p', { class: 'small' }, 'Prima scegli il tuo nome in “Chi sei?”: sarai il narratore e non riceverai un personaggio.') : null,
     h('p', { class: 'sub' }, !g.assign.length ? `Assegna i personaggi una settimana prima. Tu sei il narratore; per gli altri ${Math.max(0, state.people.length - (me ? 1 : 0))} servono ${Math.min(Math.max(0, state.people.length - (me ? 1 : 0)), GIALLO.order.length)} personaggi su ${GIALLO.order.length}.`
       : g.solved ? 'Soluzione rivelata.' : g.accuse ? `Accuse: ${accuse.length} su ${g.assign.length}.` : g.round ? `Giro ${g.round} di 3 sbloccato.` : `${g.assign.length} personaggi assegnati: ognuno vede il suo nell’app.`),
@@ -377,14 +371,14 @@ async function resetAll() {
     await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
     const snap2 = await getDocs(collection(db, 'accuse'));
     await Promise.all(snap2.docs.map(d => deleteDoc(d.ref)));
-    await patch({ teams: [], votingOpen: false, opened: false, revealed: [], giallo: { ...NO_GIALLO, versione: state.giallo.versione || 'capodanno' } });
+    await patch({ teams: [], votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO });
   } catch (e) { error = 'Non sono riuscito ad azzerare (' + e.code + ').'; render(); }
 }
 
 /* ---------- impaginazione ---------- */
 function render() {
   const app = document.getElementById('app'); const nav = document.getElementById('tabs');
-  const head = h('header', {}, h('p', { class: 'eyebrow' }, SOLO ? (state.giallo.versione === 'halloween' ? 'Cena con delitto · Halloween' : 'Cena con delitto') : 'Isola Sant’Antonio · 30.12 – 1.1'),
+  const head = h('header', {}, h('p', { class: 'eyebrow' }, SOLO ? 'Cena con delitto' : 'Isola Sant’Antonio · 30.12 – 1.1'),
     SOLO ? h('h1', {}, 'Delitto ', h('em', {}, 'a Villa Ferraris')) : h('h1', {}, 'Capodanno ', h('em', {}, 'a Isola')),
     me && tab !== 'chi' ? h('p', { class: 'small' }, 'Sei ', h('strong', {}, me), ' · ',
       h('button', { class: 'btn ghost', style: 'padding:4px 10px;min-height:32px;font-size:13px', onclick: () => { me = null; save('me', null); go('chi'); } }, 'Non sono io')) : null);
