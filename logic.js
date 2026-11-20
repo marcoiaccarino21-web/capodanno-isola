@@ -12,7 +12,6 @@ export const CATEGORIES = [
   { id: 'chef',            label: 'Migliori chef del giro del mondo', kind: 'team', note: 'Premio di squadra' },
   { id: 'detective',       label: 'Miglior detective del giallo', kind: 'person' },
   { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person' },
-  { id: 'travestimento',   label: 'Miglior travestimento', kind: 'person' },
   { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person' },
   { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person' },
   { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person' }
