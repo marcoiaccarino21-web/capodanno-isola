@@ -33,19 +33,20 @@ export const PROGRAM = [
   ]},
   { day: 'Giovedì 31 dicembre', title: 'Delitto a Villa Ferraris', rows: [
     ['Mattina', 'Gita a Valenza (24 km, mezz’ora di macchina): centro, Duomo e vetrina della bottega orafa del MOD'],
-    ['13:15', 'Rientro e pranzo veloce: trofie al pesto'],
-    ['Pomeriggio', 'Lasagne insieme e travestimenti'],
+    ['Pranzo', 'Da decidere'],
+    ['Pomeriggio', 'Lasagne al ragù vegetale tutti insieme e travestimenti'],
     ['19:30', 'Aperitivo in piedi, travestiti: Ottavio Ferraris accoglie gli ospiti e brinda'],
     ['20:00', 'Ottavio viene trovato morto: comincia il giallo'],
-    ['20:15', 'Cena con delitto: antipasti, lasagne, cotechino e lenticchie, con un sopralluogo per la casa tra una portata e l’altra'],
+    ['20:15', 'Cena con delitto: antipasti, lasagne al ragù vegetale, cotechino e lenticchie, con un sopralluogo per la casa tra una portata e l’altra'],
     ['23:10', 'Accuse dall’app, poi la soluzione'],
     ['Mezzanotte', 'Countdown e brindisi'],
     ['Dopo', 'Party game e giochi alcolici']
   ]},
   { day: 'Venerdì 1° gennaio', title: 'Nessuna sveglia, gran finale', rows: [
-    ['12:00', 'Brunch (vale come pranzo)'],
-    ['13:30', 'Gli Oscar del Capodanno: spoglio e premiazione'],
-    ['14:30', 'Pulizie a squadre'],
+    ['Mattina', 'Sveglia libera, colazione con caffè e panettone'],
+    ['13:00', 'Pranzo: trofie al pesto'],
+    ['14:00', 'Gli Oscar del Capodanno: spoglio e premiazione'],
+    ['14:45', 'Pulizie a squadre'],
     ['16:00', 'Partenza per il rientro']
   ]}
 ];
