@@ -259,7 +259,7 @@ function boxCartina() {
     <text x="10" y="18" class="mp-h">FUORI</text>
     <rect x="10" y="28" width="340" height="200" rx="8" class="mp-garden"/>
     ${R(80, 36, 200, 52, 'Cantina', 'capannone', true, 14)}
-    ${R(40, 96, 200, 30, 'Macchina del maestro', 'parcheggio', true, 11)}
+    <rect x="128" y="98" width="26" height="26" rx="5" class="mp-in"/><text x="141" y="117" class="mp-t" style="font-size:16px">P</text>
     ${R(40, 136, 120, 62, 'Villa', '', false, 13)}
     <path d="M24 168 H40 V198 H160 V214 H24 Z" class="mp-in"/><text x="100" y="210" class="mp-s">porticato</text>
     ${R(232, 146, 96, 46, 'Gazebo', 'angolo del giardino', true, 12)}
