@@ -1,18 +1,14 @@
 // Dati fissi e funzioni pure (niente rete, niente pagina): testabili da sole.
 
 export const MENUS = [
-  { id: 'messico',  country: 'Messico',  course: 'Antipasto',   dish: 'Nachos con fagioli, guacamole e cheddar' },
-  { id: 'spagna',   country: 'Spagna',   course: 'Tapas',       dish: 'Tortilla de patatas e pan con tomate', heavy: true },
-  { id: 'giappone', country: 'Giappone', course: 'Primo',       dish: 'Yakisoba: noodles saltati con verdure, uovo e soia' },
-  { id: 'italia',   country: 'Italia',   course: 'Secondo',     dish: 'Polenta con funghi trifolati e fontina' },
-  { id: 'francia',  country: 'Francia',  course: 'Dolce',       dish: 'Crêpes con crema spalmabile o zucchero e limone' }
+  { id: 'antipasto-secondo', country: 'Messico e Italia', course: 'Antipasto e secondo', dish: 'Nachos con fagioli, guacamole e cheddar; polenta con funghi trifolati e fontina' },
+  { id: 'primo-dolce',       country: 'Giappone e Francia', course: 'Primo e dolce',     dish: 'Yakisoba con verdure, uovo e soia; crêpes con crema spalmabile o zucchero e limone' }
 ];
 
 export const CATEGORIES = [
   { id: 'chef',            label: 'Migliori chef del giro del mondo', kind: 'team', note: 'Premio di squadra' },
   { id: 'detective',       label: 'Miglior detective del giallo', kind: 'person' },
   { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person' },
-  { id: 'travestimento',   label: 'Miglior travestimento', kind: 'person' },
   { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person' },
   { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person' },
   { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person' }
@@ -28,22 +24,22 @@ export const PROGRAM = [
     ['12:00', 'Arrivo a Isola, si sistemano letti e bagagli'],
     ['13:00', 'Pranzo al ristorante'],
     ['Pomeriggio', 'Libero fino alle 17:30, poi ogni squadra cucina il suo menu'],
-    ['20:00', 'Cena giro del mondo, cinque Paesi in cinque portate'],
+    ['20:00', 'Cena giro del mondo: due squadre, quattro Paesi in quattro portate'],
     ['Dopo', 'Giochi alcolici per chi vuole']
   ]},
   { day: 'Giovedì 31 dicembre', title: 'Delitto a Villa Ferraris', rows: [
     ['Mattina', 'Gita a Valenza (24 km, mezz’ora di macchina): centro, Duomo e vetrina della bottega orafa del MOD'],
     ['Pranzo', 'Da decidere'],
-    ['Pomeriggio', 'Lasagne al ragù vegetale tutti insieme e travestimenti'],
-    ['19:30', 'Aperitivo in piedi, travestiti: Ottavio Ferraris accoglie gli ospiti e brinda'],
+    ['Pomeriggio', 'Ragù vegetale e tiramisù tutti insieme, poi ognuno si mette il cartellino del suo personaggio'],
+    ['19:30', 'Aperitivo in piedi, con i cartellini a tracolla: Ottavio Ferraris accoglie gli ospiti e brinda'],
     ['20:00', 'Ottavio viene trovato morto: comincia il giallo'],
-    ['20:15', 'Cena con delitto: antipasti, lasagne al ragù vegetale, cotechino e lenticchie, con un sopralluogo per la casa tra una portata e l’altra'],
+    ['20:15', 'Cena con delitto: antipasti, pasta al ragù vegetale, cotechino e lenticchie, tiramisù, con un sopralluogo per la casa tra una portata e l’altra'],
     ['23:10', 'Accuse dall’app, poi la soluzione'],
     ['Mezzanotte', 'Countdown e brindisi'],
     ['Dopo', 'Party game e giochi alcolici']
   ]},
   { day: 'Venerdì 1° gennaio', title: 'Nessuna sveglia, gran finale', rows: [
-    ['Mattina', 'Sveglia libera, colazione con caffè e panettone'],
+    ['Mattina', 'Sveglia libera, colazione'],
     ['13:00', 'Pranzo: trofie al pesto'],
     ['14:00', 'Gli Oscar del Capodanno: spoglio e premiazione'],
     ['14:45', 'Pulizie a squadre'],
@@ -67,8 +63,7 @@ export function shuffle(arr, rnd = Math.random) {
 export function draw(people, rnd = Math.random) {
   const n = Math.min(MENUS.length, people.length);
   if (n === 0) return [];
-  // Il menu più lungo da preparare (heavy) va per primo: se le persone non si dividono in parti uguali, prende lui la persona in più.
-  const menus = shuffle(MENUS, rnd).slice(0, n).sort((a, b) => (b.heavy ? 1 : 0) - (a.heavy ? 1 : 0));
+  const menus = shuffle(MENUS, rnd).slice(0, n);
   const ppl = shuffle(people, rnd);
   const teams = menus.map(m => ({ menu: m.id, members: [] }));
   ppl.forEach((p, i) => teams[i % n].members.push(p));
