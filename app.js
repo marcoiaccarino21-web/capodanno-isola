@@ -10,7 +10,7 @@ if (SOLO) document.title = 'Delitto a Villa Ferraris';
 import { NOMI, caricaRitratti } from './ritratti.js';
 
 /* ---------- stato ---------- */
-const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null };
+const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null };
 let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO, tavola: null };
 let RITRATTI = {};
 caricaRitratti().then(r => { RITRATTI = r; render(); }).catch(() => {});
@@ -334,6 +334,10 @@ function screenRegia() {
   const callee = GIALLO.callOrder.map(id => g.assign.find(a => a.c === id)).find(Boolean);
   if (g.assign.length && g.round === 0 && callee) gBtns.push(h('button', { class: g.call ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, call: { to: callee.p, at: Date.now() } } }) },
     g.call ? 'Rimanda l’avviso a ' + callee.p : 'Manda ' + callee.p + ' nello studio'));
+  // durante l'aperitivo: il colpevole va a svuotare davvero la boccetta del medico
+  const killer = g.assign.find(a => a.c === GIALLO.culprit);
+  if (killer && g.round === 0 && !g.call) gBtns.push(h('button', { class: g.task ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, task: { to: killer.p, at: Date.now() } } }) },
+    g.task ? 'Rimanda la missione a ' + killer.p : 'Manda ' + killer.p + ' a svuotare la boccetta'));
   if (g.assign.length && g.round < 3) gBtns.push(h('button', { class: g.round === 0 ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, round: g.round + 1 } }) }, 'Sblocca il giro ' + (g.round + 1)));
   if (g.round === 3 && !g.accuse) gBtns.push(h('button', { class: 'btn', onclick: () => patch({ giallo: { ...g, accuse: true } }) }, 'Apri le accuse'));
   if (g.accuse && !g.solved) gBtns.push(confirm === 'gsolve'
@@ -405,11 +409,27 @@ function render() {
   nav.replaceChildren(...tabs.map(([id, label]) => h('button', { 'aria-current': tab === id ? 'page' : null, onclick: () => go(me || id === 'programma' || id === 'regia' ? id : 'chi') }, label)));
   nav.hidden = !configured;
   showCall();
+  showMissione();
   showTavola();
+}
+// avviso privato al colpevole durante l'aperitivo: non gli dice ancora che è il colpevole
+function showMissione() {
+  const g = state.giallo; const old = document.getElementById('missione');
+  const due = g && g.task && g.task.to === me && !g.call && g.round === 0 && load('task') !== String(g.task.at) && !document.getElementById('chiamata');
+  if (!due) { old?.remove(); return; }
+  if (old) return;
+  const el = h('div', { id: 'missione', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:45;background:#171C36;display:flex;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
+      h('p', { class: 'eyebrow' }, 'Solo per te · non dirlo a nessuno'),
+      h('h1', {}, 'Una ', h('em', {}, 'missione')),
+      h('p', { style: 'font-size:19px;line-height:1.5' }, 'Nell’ingresso, su una sedia, c’è la borsa del medico. Senza farti vedere, svuota la boccetta che c’è dentro nel lavandino e rimettila nella borsa, vuota. Poi torna all’aperitivo come se niente fosse. Presto capirai perché.'),
+      h('button', { class: 'btn big', onclick: () => { save('task', String(g.task.at)); document.getElementById('missione')?.remove(); } }, 'Fatto, chiudi')));
+  document.body.append(el);
+  try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch {}
 }
 function showTavola() {
   const t = state.tavola; const old = document.getElementById('tavola');
-  const due = t && Date.now() - t.at < 15 * 60000 && load('tavola') !== String(t.at) && !document.getElementById('chiamata');
+  const due = t && Date.now() - t.at < 15 * 60000 && load('tavola') !== String(t.at) && !document.getElementById('chiamata') && !document.getElementById('missione');
   if (!due) { old?.remove(); return; }
   if (old) return;
   const ok = () => { save('tavola', String(t.at)); document.getElementById('tavola')?.remove(); };
