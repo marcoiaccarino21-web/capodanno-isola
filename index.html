@@ -29,6 +29,13 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.15;ma
 h3{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin:0;font-weight:700}
 p{margin:0}
 .sub{color:var(--muted);font-size:15px}
+.mp{display:flex;flex-direction:column;gap:10px}
+.mp-floor{border:1px dashed var(--line);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.mp-label{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:700}
+.mp-rooms{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+.mp-room{background:var(--night-3);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:2px;min-width:0;overflow-wrap:anywhere}
+.mp-room b{font-size:15px}.mp-room span{color:var(--muted);font-size:14px}.mp-room small{color:var(--faint);font-size:12px}
+
 .small{color:var(--faint);font-size:13px}
 .box{background:var(--night-2);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .box.gold{background:var(--gold);border-color:var(--gold);color:var(--night)}

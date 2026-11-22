@@ -220,9 +220,30 @@ function screenGiallo() {
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
   }
+  if (c || (me && me === g.narrator)) out.push(boxCartina());
   if (g.accuse && !g.solved) out.push(...boxAccusa());
   if (g.solved) out.push(...boxSoluzione());
   return out;
+}
+function boxCartina() {
+  // schema per piani, non in scala: nome nel gioco e posto vero della casa
+  const st = (gioco, vero, nota) => h('div', { class: 'mp-room' }, h('b', {}, gioco), h('span', {}, vero), nota ? h('small', {}, nota) : null);
+  const piano = (nome, ...stanze) => h('div', { class: 'mp-floor' }, h('div', { class: 'mp-label' }, nome), h('div', { class: 'mp-rooms' }, ...stanze));
+  return h('div', { class: 'box' }, h('h3', {}, 'La villa · cartina'),
+    h('p', { class: 'small' }, 'In grassetto il nome nella storia, sotto il posto vero della casa.'),
+    h('div', { class: 'mp' },
+      piano('Fuori',
+        st('Giardino e veranda', 'Porticato', 'La sua porta vale come porta-finestra dello studio'),
+        st('Gazebo', 'Angolo del giardino'),
+        st('Macchina del maestro', 'Parcheggio'),
+        st('Cantina', 'Capannone')),
+      piano('Piano terra',
+        st('Ingresso', 'Ingresso'),
+        st('Salone', 'Salotto', 'La cucina del cuoco è l’angolo cottura'),
+        st('Corridoio', 'Scale verso il seminterrato')),
+      piano('Sotto',
+        st('Studio di Ottavio', 'Seminterrato'),
+        st('Bagno', 'Bagno di sotto'))));
 }
 function boxStanze() {
   // solo per il narratore: i giocatori scoprono le stanze dal vivo, con i cartelli e gli oggetti
@@ -242,6 +263,7 @@ function screenNarratore() {
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
     h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
+  out.push(boxCartina());
   out.push(boxStanze());
   const ca = g.assign.find(a => a.c === GIALLO.culprit); const who = ca?.p;
   out.push(h('div', { class: 'envelope' }, h('h3', {}, 'Solo per te · la soluzione'),
