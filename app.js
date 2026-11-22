@@ -234,7 +234,7 @@ function boxCartina() {
     `<text x="${x + w / 2}" y="${y + hh / 2 - (vero ? 3 : -4)}" class="mp-t" style="font-size:${fs}px">${nome}</text>` +
     (vero ? `<text x="${x + w / 2}" y="${y + hh / 2 + 11}" class="mp-s">${vero}</text>` : '') + '</g>';
   const door = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="mp-door"/>`;
-  const terra = `<svg viewBox="0 0 360 432" class="mp-svg" role="img" aria-label="Piantina del piano terra">
+  const terra = `<svg viewBox="0 0 384 432" class="mp-svg" role="img" aria-label="Piantina del piano terra"><g transform="translate(24,0)">
     ${R(10, 40, 160, 146, 'Camera', '', false)}
     ${R(170, 40, 70, 110, 'Bagno', '', false, 11)}
     ${R(240, 40, 110, 110, 'Camera', '', false)}
@@ -245,10 +245,10 @@ function boxCartina() {
     ${R(10, 186, 95, 80, 'Cucina', 'angolo cottura', true, 11)}
     ${R(10, 266, 165, 114, 'Salone', 'salotto', true, 15)}
     ${R(175, 186, 65, 194, 'Ingresso', 'poltrona', true, 12)}
-    ${R(10, 380, 230, 34, 'Giardino', 'porticato', true, 12)}
+    ${R(-14, 380, 254, 34, 'Giardino', 'porticato', true, 12)}${R(-14, 186, 24, 194, '', '', true)}
     ${door(186, 186, 229, 186)}${door(175, 205, 175, 245)}${door(175, 320, 175, 360)}${door(190, 380, 225, 380)}${door(130, 380, 165, 380)}${door(290, 156, 290, 180)}${door(170, 156, 170, 180)}
     <text x="207" y="426" class="mp-s">porta di casa</text><text x="128" y="370" class="mp-s">porta-finestra</text>
-    <text x="10" y="24" class="mp-h">PIANO TERRA</text></svg>`;
+    <text x="-14" y="24" class="mp-h">PIANO TERRA</text></g></svg>`;
   const sotto = `<svg viewBox="0 0 360 150" class="mp-svg" role="img" aria-label="Piantina del seminterrato">
     <text x="10" y="18" class="mp-h">SEMINTERRATO</text>
     ${R(10, 30, 240, 110, 'Studio di Ottavio', 'seminterrato', true, 15)}
