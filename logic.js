@@ -33,8 +33,10 @@ export const PROGRAM = [
     ['Pomeriggio', 'Ragù vegetale e tiramisù tutti insieme, poi ognuno si mette il cartellino del suo personaggio'],
     ['19:30', 'Aperitivo in piedi, con i cartellini a tracolla: Ottavio Ferraris accoglie gli ospiti e brinda'],
     ['20:00', 'Ottavio viene trovato morto: comincia il giallo'],
-    ['20:15', 'Cena con delitto: antipasti, pasta al ragù vegetale, cotechino e lenticchie, tiramisù, con un sopralluogo per la casa tra una portata e l’altra'],
-    ['23:10', 'Accuse dall’app, poi la soluzione'],
+    ['20:15', 'Giro 1 e primo sopralluogo; 20:45 a tavola con la pasta al ragù vegetale'],
+    ['21:30', 'Giro 2 e secondo sopralluogo; 21:55 a tavola con cotechino e lenticchie'],
+    ['22:35', 'Giro 3 e caccia alla Stella; 23:00 tiramisù e ragionamenti a tavola'],
+    ['23:20', 'Accuse dall’app, poi la soluzione'],
     ['Mezzanotte', 'Countdown e brindisi'],
     ['Dopo', 'Party game e giochi alcolici']
   ]},
