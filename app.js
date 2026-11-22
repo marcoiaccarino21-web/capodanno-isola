@@ -85,7 +85,7 @@ function boxSpesa(menu) {
   let fatti = []; try { fatti = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
   const toggle = i => { fatti = fatti.includes(i) ? fatti.filter(x => x !== i) : [...fatti, i]; try { localStorage.setItem(key, JSON.stringify(fatti)); } catch (e) {} render(); };
   return h('div', { class: 'box' }, h('h3', {}, 'La spesa della tua squadra'),
-    h('p', { class: 'small' }, `Alla Metro, dopo la parte comune. ${fatti.length} su ${lista.length} nel carrello. Poi tutti alla cassa insieme: uova, latte, burro, cipolle, carote, olio, zucchero e crema spalmabile sono già nella spesa comune.`),
+    h('p', { class: 'small' }, `Tutto quello che serve al vostro menu. ${fatti.length} su ${lista.length} nel carrello. Poi tutti alla cassa insieme.`),
     h('div', { class: 'spesa' }, lista.map(([cosa, qt], i) => h('button', { class: 'nominee', 'aria-pressed': fatti.includes(i) ? 'true' : 'false', onclick: () => toggle(i) },
       h('span', {}, (fatti.includes(i) ? '✓ ' : '') + cosa), h('small', {}, qt)))));
 }

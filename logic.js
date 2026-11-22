@@ -13,19 +13,22 @@ export const DISHES = [
 ];
 export const dishById = id => DISHES.find(d => d.id === id);
 
-// Spesa di squadra alla Metro, dopo la parte comune: solo gli ingredienti del proprio menu.
-// Uova, latte, burro, cipolle, carote, olio, zucchero e crema spalmabile sono nella spesa comune.
+// Spesa di squadra alla Metro: tutto quello che serve al menu della squadra (porzioni da assaggio per 11).
 export const SPESA = {
   'antipasto-secondo': [
     ['Tortilla chips', '3 buste da 200 g'], ['Fagioli neri o rossi', '2 lattine'], ['Jalapeños', '1 vasetto'],
-    ['Avocado', '4'], ['Pomodori', '4'], ['Lime', '4'], ['Coriandolo (o prezzemolo)', '1 mazzo'],
+    ['Avocado', '4'], ['Pomodori', '4'], ['Lime', '4'], ['Cipolla rossa', '1'], ['Coriandolo', '1 mazzo'],
     ['Panna acida (o yogurt greco)', '200 g'], ['Cheddar grattugiato (o emmental)', '400 g'],
-    ['Funghi champignon (o misti)', '1,5 kg'], ['Fontina (o toma)', '500 g'], ['Farina per polenta, bramata o istantanea', '1 kg']
+    ['Funghi champignon (o misti)', '1,5 kg'], ['Aglio', '1 testa'], ['Prezzemolo', '1 mazzo'],
+    ['Fontina (o toma)', '500 g'], ['Farina per polenta, bramata o istantanea', '1 kg'], ['Burro', '250 g'],
+    ['Olio extravergine', '1 bottiglia da 0,5 l'], ['Sale grosso e fino', 'se mancano in casa']
   ],
   'primo-dolce': [
-    ['Noodles: udon o ramen secchi (o spaghetti)', '1 kg'], ['Cavolo cinese (o verza)', '600 g'], ['Zenzero fresco', '1 radice'],
-    ['Cipollotti', '1 mazzo'], ['Aglio', '1 testa'], ['Salsa di soia', '1 bottiglia'], ['Olio di sesamo', '1 bottiglia'],
-    ['Olio di semi', '1 l'], ['Farina 00', '1 kg'], ['Limoni', '3']
+    ['Noodles: udon o ramen secchi (o spaghetti)', '1 kg'], ['Cavolo cinese (o verza)', '600 g'], ['Carote', '3'],
+    ['Cipolla', '1'], ['Cipollotti', '1 mazzo'], ['Zenzero fresco', '1 radice'], ['Aglio', '1 testa'],
+    ['Uova', '12 (6 per lo yakisoba, 6 per le crêpes)'], ['Salsa di soia', '1 bottiglia'], ['Olio di sesamo', '1 bottiglia'],
+    ['Olio di semi', '1 l'], ['Farina 00', '1 kg'], ['Latte intero', '1 l'], ['Burro', '125 g'], ['Zucchero', '500 g'],
+    ['Crema spalmabile', '1 barattolo da 750 g'], ['Limoni', '3']
   ]
 };
 
