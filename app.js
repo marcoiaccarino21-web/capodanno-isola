@@ -245,7 +245,7 @@ function boxCartina() {
     ${R(10, 186, 95, 80, 'Cucina', 'angolo cottura', true, 11)}
     ${R(10, 266, 165, 114, 'Salone', 'salotto', true, 15)}
     ${R(175, 186, 65, 194, 'Ingresso', 'poltrona', true, 12)}
-    ${R(-14, 380, 254, 34, 'Giardino', 'porticato', true, 12)}${R(-14, 186, 24, 194, '', '', true)}
+    <path d="M-14 266 H10 V380 H240 V414 H-14 Z" class="mp-in"/><text x="125" y="395" class="mp-t" style="font-size:12px">Giardino</text><text x="125" y="408" class="mp-s">porticato</text>
     ${door(186, 186, 229, 186)}${door(175, 205, 175, 245)}${door(175, 320, 175, 360)}${door(190, 380, 225, 380)}${door(130, 380, 165, 380)}${door(290, 156, 290, 180)}${door(170, 156, 170, 180)}
     <text x="207" y="426" class="mp-s">porta di casa</text><text x="128" y="370" class="mp-s">porta-finestra</text>
     <text x="-14" y="24" class="mp-h">PIANO TERRA</text></g></svg>`;
