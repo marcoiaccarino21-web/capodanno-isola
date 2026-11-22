@@ -441,8 +441,9 @@ function passiMissione() {
   return h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
         h('li', {}, 'Adesso: nell’ingresso, su una sedia, c’è la borsa del medico. Senza farti vedere, svuota la boccetta nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa.'),
         h('li', {}, '19:56: alle 19:55 il cuoco lascia il vassoio dell’amaro sulle scale per andare ad aprire la porta. Appena si allontana, versa la fialetta nel bicchierino.'),
-        h('li', {}, '19:57: chiuditi nello sgabuzzino, al buio, e aspetta lì senza farti sentire.'),
-        h('li', {}, '20:03: esci, entra nello studio (il maestro sarà già «morto»), prendi la Stella dalla vetrina, torna nello sgabuzzino e nascondila bene lì dentro. Resta chiuso lì finché non senti l’allarme, poi raggiungi gli altri come se arrivassi dalla cantina.'));
+        h('li', {}, '19:57: chiuditi nello sgabuzzino, nascondi la fialetta dietro qualcosa e aspetta al buio, senza farti sentire.'),
+        h('li', {}, '20:03: esci, entra nello studio dalla porta interna (il maestro sarà già «morto»), prendi la Stella dalla vetrina e lascia la vetrina aperta. Torna nello sgabuzzino.'),
+        h('li', {}, 'All’allarme: aspetta che tutti siano scesi nello studio, sali nel salotto vuoto e nascondi la Stella sotto il fagiano impagliato. Poi scendi nello studio anche tu, come se arrivassi dalla cantina.'));
 }
 function showMissione() {
   const g = state.giallo; const old = document.getElementById('missione');
