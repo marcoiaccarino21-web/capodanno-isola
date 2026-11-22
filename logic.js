@@ -103,6 +103,12 @@ export function detectives(accuse, culprit) {
   return (accuse || []).filter(a => a.suspect === culprit).sort((a, b) => String(a.at).localeCompare(String(b.at)));
 }
 
+// Nomination: i primi tre per voti, più chi è a pari merito con il terzo.
+export function nominations(rows) {
+  const soglia = rows.length > 3 ? rows[2][1] : 0;
+  return rows.filter(r => r[1] >= soglia);
+}
+
 export function tally(ballots, catId) {
   const t = {};
   for (const b of ballots) { const v = b.votes && b.votes[catId]; if (v) t[v] = (t[v] || 0) + 1; }
