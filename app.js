@@ -255,14 +255,15 @@ function boxCartina() {
     ${R(250, 30, 50, 60, 'Scale', '', true, 10)}
     ${R(250, 90, 100, 50, 'Bagno', 'in fondo alle scale', true, 11)}
     ${door(250, 50, 250, 80)}${door(265, 90, 290, 90)}</svg>`;
-  const fuori = `<svg viewBox="0 0 360 230" class="mp-svg" role="img" aria-label="Il terreno visto dall’alto">
+  const fuori = `<svg viewBox="0 0 360 236" class="mp-svg" role="img" aria-label="Il terreno visto dall’alto">
     <text x="10" y="18" class="mp-h">FUORI</text>
-    <rect x="10" y="28" width="340" height="195" rx="8" class="mp-garden"/>
-    ${R(80, 36, 200, 62, 'Cantina', 'capannone', true, 14)}
-    ${R(30, 130, 110, 70, 'Villa', '', false, 13)}
-    ${R(30, 200, 126, 16, '', '', true)}${R(140, 130, 16, 86, '', '', true)}<text x="85" y="212" class="mp-s">porticato</text>
-    <text x="250" y="160" class="mp-s">giardino</text>
-    </svg>`;
+    <rect x="10" y="28" width="340" height="200" rx="8" class="mp-garden"/>
+    ${R(80, 36, 200, 52, 'Cantina', 'capannone', true, 14)}
+    ${R(40, 96, 200, 30, 'Macchina del maestro', 'parcheggio', true, 11)}
+    ${R(40, 136, 120, 62, 'Villa', '', false, 13)}
+    <path d="M24 168 H40 V198 H160 V214 H24 Z" class="mp-in"/><text x="100" y="210" class="mp-s">porticato</text>
+    ${R(232, 146, 96, 46, 'Gazebo', 'angolo del giardino', true, 12)}
+    <text x="290" y="114" class="mp-s">giardino</text></svg>`;
   const box = h('div', { class: 'mp' });
   box.innerHTML = terra + sotto + fuori;
   return h('div', { class: 'box' }, h('h3', {}, 'La villa · cartina'),
