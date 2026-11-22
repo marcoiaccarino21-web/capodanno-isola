@@ -1,11 +1,8 @@
 // Dati fissi e funzioni pure (niente rete, niente pagina): testabili da sole.
 
 export const MENUS = [
-  { id: 'messico',  country: 'Messico',  course: 'Antipasto',   dish: 'Nachos con fagioli, guacamole e cheddar' },
-  { id: 'spagna',   country: 'Spagna',   course: 'Tapas',       dish: 'Tortilla de patatas e pan con tomate', heavy: true },
-  { id: 'giappone', country: 'Giappone', course: 'Primo',       dish: 'Yakisoba: noodles saltati con verdure, uovo e soia' },
-  { id: 'italia',   country: 'Italia',   course: 'Secondo',     dish: 'Polenta con funghi trifolati e fontina' },
-  { id: 'francia',  country: 'Francia',  course: 'Dolce',       dish: 'Crêpes con crema spalmabile o zucchero e limone' }
+  { id: 'antipasto-secondo', country: 'Messico e Italia', course: 'Antipasto e secondo', dish: 'Nachos con fagioli, guacamole e cheddar; polenta con funghi trifolati e fontina' },
+  { id: 'primo-dolce',       country: 'Giappone e Francia', course: 'Primo e dolce',     dish: 'Yakisoba con verdure, uovo e soia; crêpes con crema spalmabile o zucchero e limone' }
 ];
 
 export const CATEGORIES = [
@@ -28,7 +25,7 @@ export const PROGRAM = [
     ['12:00', 'Arrivo a Isola, si sistemano letti e bagagli'],
     ['13:00', 'Pranzo al ristorante'],
     ['Pomeriggio', 'Libero fino alle 17:30, poi ogni squadra cucina il suo menu'],
-    ['20:00', 'Cena giro del mondo, cinque Paesi in cinque portate'],
+    ['20:00', 'Cena giro del mondo: due squadre, quattro Paesi in quattro portate'],
     ['Dopo', 'Giochi alcolici per chi vuole']
   ]},
   { day: 'Giovedì 31 dicembre', title: 'Delitto a Villa Ferraris', rows: [
@@ -67,8 +64,7 @@ export function shuffle(arr, rnd = Math.random) {
 export function draw(people, rnd = Math.random) {
   const n = Math.min(MENUS.length, people.length);
   if (n === 0) return [];
-  // Il menu più lungo da preparare (heavy) va per primo: se le persone non si dividono in parti uguali, prende lui la persona in più.
-  const menus = shuffle(MENUS, rnd).slice(0, n).sort((a, b) => (b.heavy ? 1 : 0) - (a.heavy ? 1 : 0));
+  const menus = shuffle(MENUS, rnd).slice(0, n);
   const ppl = shuffle(people, rnd);
   const teams = menus.map(m => ({ menu: m.id, members: [] }));
   ppl.forEach((p, i) => teams[i % n].members.push(p));

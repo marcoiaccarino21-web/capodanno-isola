@@ -83,7 +83,7 @@ function screenProgramma() {
   return [
     ...PROGRAM.map(d => h('div', { class: 'box' }, h('h3', {}, d.day), h('h2', {}, d.title),
       h('div', { class: 'list' }, d.rows.map(([k, v]) => h('div', { class: 'item' }, h('b', {}, k), h('span', {}, v)))))),
-    h('div', { class: 'box' }, h('h3', {}, 'I cinque menu'),
+    h('div', { class: 'box' }, h('h3', {}, 'I due menu'),
       h('div', { class: 'list' }, MENUS.map(m => h('div', { class: 'item' }, h('b', {}, m.course), h('span', {}, h('strong', {}, m.country + ' · '), m.dish)))))
   ];
 }
@@ -310,7 +310,7 @@ function screenRegia() {
     state.people.some(p => !state.sesso[p]) ? h('p', { class: 'small' }, 'Tocca M o F accanto a ogni nome: serve per il nome e il ritratto del personaggio nel giallo.') : null));
   // sorteggio
   if (!SOLO) out.push(h('div', { class: 'box' }, h('h3', {}, 'Sorteggio squadre e menu'),
-    h('p', { class: 'sub' }, locked ? 'Squadre estratte: le vede già chiunque apra l’app.' : `Con ${state.people.length} persone escono ${Math.min(5, state.people.length)} squadre, ognuna con un menu.`),
+    h('p', { class: 'sub' }, locked ? 'Squadre estratte: le vede già chiunque apra l’app.' : `Con ${state.people.length} persone escono ${Math.min(MENUS.length, state.people.length)} squadre, ognuna con un menu.`),
     confirm === 'draw'
       ? h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => { confirm = null; patch({ teams: draw(state.people) }); } }, locked ? 'Sì, rifai il sorteggio' : 'Sì, sorteggia'),
           h('button', { class: 'btn ghost', onclick: () => { confirm = null; render(); } }, 'Annulla'))
