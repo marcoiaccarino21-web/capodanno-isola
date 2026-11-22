@@ -260,7 +260,7 @@ function boxCartina() {
     <rect x="10" y="28" width="340" height="195" rx="8" class="mp-garden"/>
     ${R(80, 36, 200, 62, 'Cantina', 'capannone', true, 14)}
     ${R(30, 130, 110, 70, 'Villa', '', false, 13)}
-    ${R(30, 200, 110, 16, '', '', true)}<text x="85" y="212" class="mp-s">porticato</text>
+    ${R(30, 200, 126, 16, '', '', true)}${R(140, 130, 16, 86, '', '', true)}<text x="85" y="212" class="mp-s">porticato</text>
     <text x="250" y="160" class="mp-s">giardino</text>
     </svg>`;
   const box = h('div', { class: 'mp' });
