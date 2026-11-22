@@ -219,18 +219,14 @@ function screenGiallo() {
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
   }
-  if (g.round > 0) out.push(boxStanze());
   if (g.accuse && !g.solved) out.push(...boxAccusa());
   if (g.solved) out.push(...boxSoluzione());
-  if (morto) out.push(h('div', { class: 'box' }, h('h3', {}, 'Le regole'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r)))));
   return out;
 }
-function boxStanze(all) {
-  const r = state.giallo.round;
-  // ai giocatori solo le stanze già aperte, senza anticipare le prossime
-  const rooms = all ? GIALLO.rooms : GIALLO.rooms.filter(x => r >= x.round);
-  return h('div', { class: 'box' }, h('h3', {}, all ? 'Le stanze della villa' : 'Le stanze aperte'),
-    h('div', { class: 'list' }, rooms.map(x => h('div', { class: 'item' }, h('b', {}, all ? x.name + ' · giro ' + x.round : x.name), h('span', {}, x.text)))));
+function boxStanze() {
+  // solo per il narratore: i giocatori scoprono le stanze dal vivo, con i cartelli e gli oggetti
+  return h('div', { class: 'box' }, h('h3', {}, 'Le stanze della villa'),
+    h('div', { class: 'list' }, GIALLO.rooms.map(x => h('div', { class: 'item' }, h('b', {}, x.name + ' · giro ' + x.round), h('span', {}, x.text)))));
 }
 function screenNarratore() {
   const g = state.giallo; const out = [];
@@ -245,7 +241,7 @@ function screenNarratore() {
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
     h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
-  out.push(boxStanze(true));
+  out.push(boxStanze());
   const ca = g.assign.find(a => a.c === GIALLO.culprit); const who = ca?.p;
   out.push(h('div', { class: 'envelope' }, h('h3', {}, 'Solo per te · la soluzione'),
     h('p', { class: 'winner' }, (ca ? pers(ca).name : charById(GIALLO.culprit).name) + (who ? ' (' + who + ')' : '')), h('p', {}, GIALLO.solution)));
