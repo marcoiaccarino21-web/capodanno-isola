@@ -1,7 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
-import { MENUS, CATEGORIES, PROGRAM, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, tally, assignCharacters } from './logic.js';
+import { MENUS, CATEGORIES, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, tally, assignCharacters } from './logic.js';
 import { GIALLO, femminile } from './giallo.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
@@ -79,15 +79,6 @@ function screenChi() {
     h('div', { class: 'names' }, state.people.map(p => h('button', { class: 'name', onclick: () => { me = p; save('me', p); go(HOME); } }, p))))];
 }
 
-function screenProgramma() {
-  return [
-    ...PROGRAM.map(d => h('div', { class: 'box' }, h('h3', {}, d.day), h('h2', {}, d.title),
-      h('div', { class: 'list' }, d.rows.map(([k, v]) => h('div', { class: 'item' }, h('b', {}, k), h('span', {}, v)))))),
-    h('div', { class: 'box' }, h('h3', {}, 'I due menu'),
-      h('div', { class: 'list' }, MENUS.map(m => h('div', { class: 'item' }, h('b', {}, m.course), h('span', {}, h('strong', {}, m.country + ' · '), m.dish)))))
-  ];
-}
-
 function screenSquadra() {
   const out = [];
   if (!state.teams.length) {
@@ -103,12 +94,13 @@ function screenSquadra() {
       h('p', { class: 'big-dish' }, m.country),
       h('p', { style: 'font-size:18px;font-weight:600' }, m.dish),
       h('p', { class: 'sub' }, mates.length ? 'Cucini con ' + mates.join(', ') : 'Cucini da solo: tutta la gloria è tua')));
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Quando si cucina'),
+      h('div', { class: 'list' },
+        h('div', { class: 'item' }, h('b', {}, 'Mercoledì 30'), h('span', {}, 'Dalle 17:30 ai fornelli, con la tua squadra')),
+        h('div', { class: 'item' }, h('b', {}, '20:00'), h('span', {}, 'A tavola: si servono le portate')))));
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non sei in nessuna squadra: chiedi all’organizzatore di rifare il sorteggio.')));
   }
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Tutte le squadre'),
-    state.teams.map(x => { const m = menuById(x.menu); return h('div', { class: 'team' + (x === t ? ' mine' : '') },
-      h('strong', {}, m.country + ' · ' + m.course), h('span', { class: 'sub' }, x.members.join(', '))); })));
   return out;
 }
 
@@ -365,7 +357,7 @@ function screenRegia() {
     state.people.some(p => !state.sesso[p]) ? h('p', { class: 'small' }, 'Tocca M o F accanto a ogni nome: serve per il nome e il ritratto del personaggio nel giallo.') : null));
   // sorteggio
   if (!SOLO) out.push(h('div', { class: 'box' }, h('h3', {}, 'Sorteggio squadre e menu'),
-    h('p', { class: 'sub' }, locked ? 'Squadre estratte: le vede già chiunque apra l’app.' : `Con ${state.people.length} persone escono ${Math.min(MENUS.length, state.people.length)} squadre, ognuna con un menu.`),
+    h('p', { class: 'sub' }, locked ? 'Squadre estratte: ognuno vede solo la sua squadra e il suo menu.' : `Con ${state.people.length} persone escono ${Math.min(MENUS.length, state.people.length)} squadre, ognuna con un menu.`),
     confirm === 'draw'
       ? h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => { confirm = null; patch({ teams: draw(state.people) }); } }, locked ? 'Sì, rifai il sorteggio' : 'Sì, sorteggia'),
           h('button', { class: 'btn ghost', onclick: () => { confirm = null; render(); } }, 'Annulla'))
@@ -446,15 +438,15 @@ function render() {
   if (!configured) body = [h('div', { class: 'warn' }, 'App non ancora collegata a Firebase: incolla la configurazione in config.js (vedi LEGGIMI).')];
   else if (!loaded) body = [h('p', { class: 'sub' }, 'Caricamento…')];
   else if (SOLO && !['chi', 'giallo', 'regia'].includes(tab)) { tab = me ? 'giallo' : 'chi'; body = me ? screenGiallo() : screenChi(); }
-  else if (tab === 'chi' || (!me && tab !== 'regia' && tab !== 'programma')) body = screenChi();
-  else body = { programma: screenProgramma, squadra: screenSquadra, giallo: screenGiallo, oscar: screenOscar, regia: screenRegia }[tab]();
+  else if (tab === 'chi' || (!me && tab !== 'regia')) body = screenChi();
+  else body = { squadra: screenSquadra, giallo: screenGiallo, oscar: screenOscar, regia: screenRegia }[tab]();
   const foot = !admin && tab !== 'regia' && configured ? h('button', { class: 'btn ghost', style: 'align-self:center;font-size:13px;min-height:36px;padding:6px 14px;opacity:.7', onclick: () => go('regia') }, 'Area organizzatore') : null;
   app.replaceChildren(...[head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body, foot].filter(Boolean));
   // barra in basso
-  const tabs = SOLO ? [['giallo', 'Giallo']] : [['programma', 'Programma'], ['squadra', 'Squadra'], ['giallo', 'Giallo'], ['oscar', 'Oscar']];
+  const tabs = SOLO ? [['giallo', 'Giallo']] : [['squadra', 'Cena dei mondi'], ['giallo', 'Giallo'], ['oscar', 'Oscar']];
   if (admin) tabs.push(['regia', 'Regia']);
   nav.style.setProperty('--n', tabs.length);
-  nav.replaceChildren(...tabs.map(([id, label]) => h('button', { 'aria-current': tab === id ? 'page' : null, onclick: () => go(me || id === 'programma' || id === 'regia' ? id : 'chi') }, label)));
+  nav.replaceChildren(...tabs.map(([id, label]) => h('button', { 'aria-current': tab === id ? 'page' : null, onclick: () => go(me || id === 'regia' ? id : 'chi') }, label)));
   nav.hidden = !configured;
   showCall();
   showMissione();
