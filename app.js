@@ -142,7 +142,7 @@ const DISCORSO = 30000;
 let sbircia = null; // busta di cui il presentatore ha già visto il vincitore (solo su questo telefono)
 function esito(c) {
   if (c.kind === 'auto') {
-    const d = detectives(accuse, GIALLO.culprit);
+    const d = detectives(accuse.filter(a => a.voter !== state.giallo.narrator), GIALLO.culprit);
     return { nomi: d.slice(0, 3).map(x => x.voter), vincitori: d.length ? [d[0].voter] : [], dopo: d.slice(1), persone: d.length ? [d[0].voter] : [], d };
   }
   const t = tally(ballots, c.id);
@@ -292,7 +292,7 @@ function screenGiallo() {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
   }
   if (c || (me && me === g.narrator)) out.push(boxCartina());
-  if (g.accuse && !g.solved) out.push(...boxAccusa());
+  if (g.accuse && !g.solved && me !== g.narrator) out.push(...boxAccusa()); // il narratore sa già chi è stato
   if (g.solved) out.push(...boxSoluzione());
   return out;
 }
