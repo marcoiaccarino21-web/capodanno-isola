@@ -208,6 +208,7 @@ function screenGiallo() {
       h('p', {}, genere(c.intro, x.sesso, c.id)),
       h('p', { style: 'font-size:15px;font-weight:600' }, 'Porta a tracolla il tuo cartellino. Il personaggio è solo sul tuo telefono: non farlo vedere a nessuno.')));
     if (!morto) out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Goditi l’aperitivo nei panni del tuo personaggio. Il resto arriva sul telefono durante la serata.')));
+    if (!morto && g.task && g.task.to === me) out.push(h('div', { class: 'box' }, h('h3', {}, 'La tua missione · non mostrarla'), h('div', { class: 'sub' }, passiMissione())));
     else {
       out.push(h('div', { class: 'box reveal' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
         c.where ? h('h3', {}, 'Dove eri davvero · 19:55–20:05') : null, c.where ? h('p', {}, c.where) : null,
@@ -413,6 +414,13 @@ function render() {
   showTavola();
 }
 // avviso privato al colpevole durante l'aperitivo: non gli dice ancora che è il colpevole
+function passiMissione() {
+  return h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
+        h('li', {}, 'Adesso: nell’ingresso, su una sedia, c’è la borsa del medico. Senza farti vedere, svuota la boccetta nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa.'),
+        h('li', {}, '19:56: alle 19:55 il cuoco lascia il vassoio dell’amaro sulle scale per andare ad aprire la porta. Appena si allontana, versa la fialetta nel bicchierino.'),
+        h('li', {}, '19:57: esci nel porticato, butta la fialetta vicino alla porta e aspetta lì, senza farti notare.'),
+        h('li', {}, '20:03: scendi nello studio (il maestro sarà già «morto»), prendi la Stella dalla vetrina e nascondila bene tra i rami dell’albero del salone. Poi resta in salone come se niente fosse.'));
+}
 function showMissione() {
   const g = state.giallo; const old = document.getElementById('missione');
   const due = g && g.task && g.task.to === me && !g.call && g.round === 0 && load('task') !== String(g.task.at) && !document.getElementById('chiamata');
@@ -422,10 +430,7 @@ function showMissione() {
     h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
       h('p', { class: 'eyebrow' }, 'Solo per te · non dirlo a nessuno'),
       h('h1', {}, 'Una ', h('em', {}, 'missione')),
-      h('div', { style: 'font-size:18px;line-height:1.45' }, h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
-        h('li', {}, 'Nell’ingresso, su una sedia, c’è la borsa del medico. Senza farti vedere, svuota la boccetta che c’è dentro nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa.'),
-        h('li', {}, 'Verso le 19:50 sulle scale compare un vassoio con un bicchierino di amaro: è per il maestro. Quando nessuno guarda, versaci dentro la fialetta.'),
-        h('li', {}, 'Butta la fialetta vuota nel porticato, vicino alla porta. Poi torna all’aperitivo come se niente fosse.'))),
+      h('div', { style: 'font-size:18px;line-height:1.45' }, passiMissione()),
       h('button', { class: 'btn big', onclick: () => { save('task', String(g.task.at)); document.getElementById('missione')?.remove(); } }, 'Fatto, chiudi')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch {}
