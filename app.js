@@ -1,7 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
-import { MENUS, CATEGORIES, DISHES, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, assignCharacters } from './logic.js';
+import { MENUS, CATEGORIES, DISHES, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, nominations, assignCharacters } from './logic.js';
 import { GIALLO, femminile } from './giallo.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
@@ -11,7 +11,7 @@ import { NOMI, caricaRitratti } from './ritratti.js';
 
 /* ---------- stato ---------- */
 const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null, allarme: null };
-let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO, tavola: null };
+let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], nominated: [], revealedAt: {}, presenter: null, presenterMode: 'staffetta', giallo: NO_GIALLO, tavola: null };
 let RITRATTI = {};
 caricaRitratti().then(r => { RITRATTI = r; render(); }).catch(() => {});
 let accuse = [];            // [{id, voter, suspect}]
@@ -35,7 +35,7 @@ if (configured) {
   stateRef = doc(db, 'capodanno', 'stato');
   onSnapshot(stateRef, snap => {
     const v = snap.exists() ? snap.data() : {};
-    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], giallo: { ...NO_GIALLO, ...(v.giallo || {}) }, tavola: v.tavola || null };
+    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], nominated: v.nominated || [], revealedAt: v.revealedAt || {}, presenter: v.presenter || null, presenterMode: v.presenterMode || 'staffetta', giallo: { ...NO_GIALLO, ...(v.giallo || {}) }, tavola: v.tavola || null };
     loaded = true;
     if (me && !state.people.includes(me)) { me = null; save('me', null); if (tab !== 'regia') tab = 'chi'; }
     render();
@@ -136,33 +136,95 @@ async function castVote() {
   catch (e) { error = 'La scheda non è stata salvata (' + e.code + '). Se avevi già votato non puoi rivotare.'; render(); }
 }
 
-function screenSpoglio(cats) {
-  const out = [h('div', { class: 'box' }, h('h3', {}, 'Spoglio'), h('h2', {}, 'Le buste sono aperte'),
-    h('p', { class: 'sub' }, admin ? 'Apri una busta alla volta, con la statuetta in mano.' : 'L’organizzatore apre le buste una alla volta: guarda qui.'))];
-  for (const c of cats) {
-    const open = state.revealed.includes(c.id);
-    if (c.kind === 'auto') {
-      const d = detectives(accuse, GIALLO.culprit); const ora = x => new Date(x.at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      out.push(h('div', { class: 'envelope' + (open ? ' reveal' : '') }, h('h3', {}, c.label),
-        open ? [h('p', { class: 'winner' }, d.length ? d[0].voter : 'Nessuno'),
-          h('p', { class: 'sub' }, d.length ? 'Il primo ad accusare il colpevole, alle ' + ora(d[0]) + '.' : 'Nessuno ha accusato il colpevole.'),
-          d.length > 1 ? h('p', { class: 'small' }, 'Dopo di lui: ' + d.slice(1).map(x => x.voter + ' (' + ora(x) + ')').join(', ')) : null]
-        : admin ? h('button', { class: 'btn', onclick: () => patch({ revealed: [...state.revealed, c.id] }) }, 'Apri la busta')
-        : h('p', { class: 'sub' }, 'Busta ancora sigillata')));
-      continue;
-    }
-    const t = tally(ballots, c.id);
-    const nome = v => c.kind === 'dish' && dishById(v) ? dishById(v).label + ' (' + dishById(v).country + ')' : v;
-    const squadre = c.kind === 'dish' ? [...new Set(t.winners.map(v => dishById(v)?.menu))].map(m => (state.teams || []).find(x => x.menu === m)).filter(Boolean) : [];
-    out.push(h('div', { class: 'envelope' + (open ? ' reveal' : '') }, h('h3', {}, c.label),
-      open ? [h('p', { class: 'winner' }, t.winners.length ? t.winners.map(nome).join(' e ') : 'Nessun voto'),
-        squadre.length ? h('p', { class: 'sub' }, 'Vince la squadra ' + squadre.map(x => (menuById(x.menu)?.country ?? '') + ' (' + x.members.join(', ') + ')').join(' e la squadra ')) : null,
-        t.winners.length > 1 && !squadre.length ? h('p', { class: 'sub' }, 'Ex aequo: due statuette.') : null,
-        h('div', { class: 'tally' }, t.rows.map(([n, k]) => h('div', {}, h('span', {}, nome(n)), h('span', { class: 'count' }, `${k} ${k === 1 ? 'voto' : 'voti'}`),
-          h('span', { class: 'bar' }, h('i', { style: `width:${t.top ? k / t.top * 100 : 0}%` })))))]
-        : admin ? h('button', { class: 'btn', onclick: () => patch({ revealed: [...state.revealed, c.id] }) }, 'Apri la busta')
-        : h('p', { class: 'sub' }, 'Busta ancora sigillata')));
+// Cerimonia: per ogni busta il presentatore legge le nomination, poi «E l'Oscar va a…»
+// (3 secondi di attesa su tutti i telefoni), poi il vincitore ha 30 secondi di discorso.
+const DISCORSO = 30000;
+let sbircia = null; // busta di cui il presentatore ha già visto il vincitore (solo su questo telefono)
+function esito(c) {
+  if (c.kind === 'auto') {
+    const d = detectives(accuse.filter(a => a.voter !== state.giallo.narrator), GIALLO.culprit);
+    return { nomi: d.slice(0, 3).map(x => x.voter), vincitori: d.length ? [d[0].voter] : [], dopo: d.slice(1), persone: d.length ? [d[0].voter] : [], d };
   }
+  const t = tally(ballots, c.id);
+  const nome = v => c.kind === 'dish' && dishById(v) ? dishById(v).label + ' (' + dishById(v).country + ')' : v;
+  const squadre = c.kind === 'dish' ? [...new Set(t.winners.map(v => dishById(v)?.menu))].map(m => (state.teams || []).find(x => x.menu === m)).filter(Boolean) : [];
+  return { t, nome, squadre, nomi: nominations(t.rows).map(r => nome(r[0])).sort((x, y) => x.localeCompare(y)),
+    vincitori: t.winners.map(nome), persone: c.kind === 'dish' ? squadre.flatMap(x => x.members) : t.winners };
+}
+// la busta la vede solo chi presenta (in modalità «Tutti» chiunque la apra)
+const presenta = () => state.presenterMode === 'app' || (!!state.presenter && state.presenter === me);
+function prossimoPresentatore(e) {
+  const m = state.presenterMode, ppl = state.people;
+  const caso = l => l.length ? l[Math.floor(Math.random() * l.length)] : state.presenter;
+  if (m === 'staffetta') { const l = e.persone.filter(p => p !== state.giallo.narrator); return l.length ? caso(l) : state.presenter; }
+  if (m === 'sorteggio') return caso(ppl.filter(p => p !== state.presenter && p !== state.giallo.narrator));
+  return state.presenter;
+}
+function apriBusta(c) {
+  const e = esito(c);
+  patch({ revealed: [...state.revealed, c.id], revealedAt: { ...state.revealedAt, [c.id]: new Date().toISOString() }, presenter: prossimoPresentatore(e) });
+}
+// conti alla rovescia: aggiorna solo i numeri, e ridisegna quando una fase finisce
+let ticker = null;
+function tick(on) {
+  if (on && !ticker) ticker = setInterval(() => {
+    const els = document.querySelectorAll('[data-end]');
+    if (!els.length || tab !== 'oscar') return tick(false);
+    for (const el of els) {
+      const left = +el.dataset.end - Date.now();
+      if (left <= 0) return render();
+      if (el.dataset.dur) el.style.width = left / +el.dataset.dur * 100 + '%';
+      else el.textContent = Math.ceil(left / 1000) + (el.dataset.s ? ' s' : '');
+    }
+  }, 250);
+  if (!on && ticker) { clearInterval(ticker); ticker = null; }
+}
+
+function screenSpoglio(cats) {
+  const ora = x => new Date(x.at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const corrente = cats.find(c => !state.revealed.includes(c.id));
+  const chi = state.presenterMode === 'app' ? 'L’app: tocca chi vuoi' : state.presenter || 'da scegliere in Regia';
+  const out = [h('div', { class: 'box' }, h('h3', {}, 'Gli Oscar del Capodanno'),
+    h('h2', {}, corrente ? (state.presenter === me && state.presenterMode !== 'app' ? 'Presenti tu' : 'Presenta: ' + chi) : 'Cerimonia finita'),
+    h('p', { class: 'sub' }, corrente
+      ? (presenta() ? 'Le buste le vedi solo tu. Leggi ad alta voce categoria e nomination, poi guarda il vincitore e annuncialo. Poi ha 30 secondi per il discorso.' : 'Ascolta il presentatore: qui compare il vincitore appena lo annuncia.')
+      : 'Tutte le statuette sono state consegnate.'))];
+  let attivo = false;
+  for (const c of cats) {
+    const open = state.revealed.includes(c.id), nom = state.nominated.includes(c.id), cur = c === corrente;
+    const e = esito(c);
+    const kids = [h('h3', {}, c.label)];
+    if (open) {
+      const t0 = Date.parse(state.revealedAt[c.id] || 0) || 0, dt = Date.now() - t0;
+      {
+        kids.push(h('p', { class: 'winner' }, e.vincitori.length ? e.vincitori.join(' e ') : c.kind === 'auto' ? 'Nessuno' : 'Nessun voto'));
+        if (c.kind === 'auto') {
+          kids.push(h('p', { class: 'sub' }, e.d.length ? 'Il primo ad accusare il colpevole, alle ' + ora(e.d[0]) + '.' : 'Nessuno ha accusato il colpevole.'));
+          if (e.dopo.length) kids.push(h('p', { class: 'small' }, 'Dopo: ' + e.dopo.map(x => x.voter + ' (' + ora(x) + ')').join(', ')));
+        } else {
+          if (e.squadre.length) kids.push(h('p', { class: 'sub' }, 'Vince la squadra ' + e.squadre.map(x => (menuById(x.menu)?.country ?? '') + ' (' + x.members.join(', ') + ')').join(' e la squadra ')));
+          else if (e.t.winners.length > 1) kids.push(h('p', { class: 'sub' }, 'Ex aequo: due statuette.'));
+        }
+        const left = DISCORSO - dt;
+        if (left > 0 && e.vincitori.length) { attivo = true; kids.push(h('div', { class: 'speech' }, h('b', {}, 'Discorso di ringraziamento'), h('span', { class: 'count', 'data-end': t0 + DISCORSO, 'data-s': 1 }, Math.ceil(left / 1000) + ' s'), h('span', { class: 'bar' }, h('i', { 'data-end': t0 + DISCORSO, 'data-dur': DISCORSO, style: `width:${left / DISCORSO * 100}%` })))); }
+        else if (e.t) kids.push(h('div', { class: 'tally' }, e.t.rows.map(([n, k]) => h('div', {}, h('span', {}, e.nome(n)), h('span', { class: 'count' }, `${k} ${k === 1 ? 'voto' : 'voti'}`),
+          h('span', { class: 'bar' }, h('i', { style: `width:${e.t.top ? k / e.t.top * 100 : 0}%` }))))));
+      }
+    } else if (nom && cur && presenta()) {
+      kids.push(h('p', { class: 'step', style: 'text-align:left' }, 'Solo per te · leggi le nomination'),
+        e.nomi.length ? h('ul', { class: 'nomi' }, e.nomi.map(n => h('li', {}, n))) : h('p', { class: 'sub' }, c.kind === 'auto' ? 'Nessuno ha indovinato il colpevole.' : 'Nessun voto.'));
+      if (sbircia !== c.id) kids.push(h('button', { class: 'btn', onclick: () => { sbircia = c.id; render(); } }, 'E l’Oscar va a… (guarda il vincitore)'));
+      else kids.push(h('p', { class: 'step', style: 'text-align:left' }, 'Annuncia ad alta voce'),
+        h('p', { class: 'winner' }, e.vincitori.length ? e.vincitori.join(' e ') : c.kind === 'auto' ? 'Nessuno' : 'Nessun voto'),
+        h('button', { class: 'btn', onclick: () => { sbircia = null; apriBusta(c); } }, 'Annunciato: parte il discorso'));
+    } else if (nom && cur) {
+      kids.push(h('p', { class: 'sub' }, 'Il presentatore ha aperto la busta: ascolta le nomination…'));
+    } else if (cur && presenta()) {
+      kids.push(c.note ? h('p', { class: 'small' }, c.note) : null, h('button', { class: 'btn', onclick: () => patch({ nominated: [...state.nominated, c.id] }) }, 'Apri la busta'));
+    } else kids.push(h('p', { class: 'sub' }, cur ? 'Busta ancora sigillata' : 'Dopo'));
+    out.push(h('div', { class: 'envelope' + (open ? ' reveal' : '') + (cur ? ' current' : '') }, kids));
+  }
+  tick(attivo);
   return out;
 }
 
@@ -230,7 +292,7 @@ function screenGiallo() {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
   }
   if (c || (me && me === g.narrator)) out.push(boxCartina());
-  if (g.accuse && !g.solved) out.push(...boxAccusa());
+  if (g.accuse && !g.solved && me !== g.narrator) out.push(...boxAccusa()); // il narratore sa già chi è stato
   if (g.solved) out.push(...boxSoluzione());
   return out;
 }
@@ -420,6 +482,12 @@ function screenRegia() {
           h('button', { class: 'btn', onclick: () => { confirm = null; patch({ opened: true, votingOpen: false }); go('oscar'); } }, 'Apri le buste'),
           h('button', { class: 'btn ghost', onclick: () => { confirm = null; render(); } }, 'Aspetta'))
       : h('button', { class: 'btn', disabled: !ballots.length, onclick: () => { confirm = 'open'; render(); } }, 'Chiudi le urne e apri le buste')) : null,
+    h('p', { class: 'small' }, 'Chi presenta la cerimonia'),
+    h('div', { class: 'sx', style: 'align-self:flex-start;flex-wrap:wrap' }, [['staffetta', 'Staffetta'], ['fisso', 'Sempre lo stesso'], ['sorteggio', 'A sorte'], ['app', 'Tutti']].map(([v, l]) =>
+      h('button', { 'aria-pressed': state.presenterMode === v ? 'true' : 'false', onclick: () => patch({ presenterMode: v }) }, l))),
+    state.presenterMode !== 'app' ? h('label', { class: 'small' }, state.presenterMode === 'staffetta' ? 'Primo presentatore (poi presenta chi vince): ' : state.presenterMode === 'sorteggio' ? 'Primo presentatore (poi a sorte): ' : 'Presentatore: ',
+      h('select', { onchange: ev => patch({ presenter: ev.target.value || null }) }, h('option', { value: '' }, '—'), state.people.map(p => h('option', { value: p, selected: state.presenter === p ? true : null }, p)))) : null,
+    state.presenterMode !== 'app' ? h('button', { class: 'btn ghost', disabled: state.people.length < 2, onclick: () => { const l = state.people.filter(p => p !== state.giallo.narrator); patch({ presenter: l[Math.floor(Math.random() * l.length)] }); } }, 'Sorteggia il presentatore') : null,
     state.opened ? h('button', { class: 'btn', onclick: () => go('oscar') }, 'Vai allo spoglio') : null));
   // azzera
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Azzera tutto'),
@@ -437,7 +505,7 @@ async function resetAll() {
     await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
     const snap2 = await getDocs(collection(db, 'accuse'));
     await Promise.all(snap2.docs.map(d => deleteDoc(d.ref)));
-    await patch({ teams: [], votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO, tavola: null });
+    await patch({ teams: [], votingOpen: false, opened: false, revealed: [], nominated: [], revealedAt: {}, presenter: null, giallo: NO_GIALLO, tavola: null });
   } catch (e) { error = 'Non sono riuscito ad azzerare (' + e.code + ').'; render(); }
 }
 
