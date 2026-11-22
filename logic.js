@@ -16,7 +16,7 @@ export const dishById = id => DISHES.find(d => d.id === id);
 export const CATEGORIES = [
   { id: 'piatto',          label: 'Piatto più buono della cena dei mondi', kind: 'dish', note: 'Vota il piatto, anche quello della tua squadra: vince la squadra che l’ha cucinato' },
   { id: 'detective',       label: 'Miglior detective del giallo', kind: 'auto', note: 'Non si vota: vince chi ha accusato per primo il colpevole' },
-  { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person' },
+  { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person', noNarrator: true },
   { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person' },
   { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person' },
   { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person' }
@@ -91,7 +91,8 @@ export function nominees(cat, voter, state) {
     const mine = teamOf(state.teams, voter);
     return (state.teams || []).filter(t => t !== mine).map(t => ({ value: teamLabel(t), label: teamLabel(t), sub: t.members.join(', ') }));
   }
-  return (state.people || []).filter(p => p !== voter).map(p => ({ value: p, label: p }));
+  const narr = cat.noNarrator && state.giallo ? state.giallo.narrator : null; // il narratore non è in gara per l'interpretazione
+  return (state.people || []).filter(p => p !== voter && p !== narr).map(p => ({ value: p, label: p }));
 }
 
 // Categorie votabili: il piatto solo se le squadre sono state sorteggiate; il detective non si vota.
