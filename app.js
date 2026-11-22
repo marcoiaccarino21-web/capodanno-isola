@@ -138,7 +138,8 @@ async function castVote() {
 
 // Cerimonia: per ogni busta il presentatore legge le nomination, poi «E l'Oscar va a…»
 // (3 secondi di attesa su tutti i telefoni), poi il vincitore ha 30 secondi di discorso.
-const SUSPENSE = 3000, DISCORSO = 30000;
+const DISCORSO = 30000;
+let sbircia = null; // busta di cui il presentatore ha già visto il vincitore (solo su questo telefono)
 function esito(c) {
   if (c.kind === 'auto') {
     const d = detectives(accuse, GIALLO.culprit);
@@ -150,7 +151,8 @@ function esito(c) {
   return { t, nome, squadre, nomi: nominations(t.rows).map(r => nome(r[0])).sort((x, y) => x.localeCompare(y)),
     vincitori: t.winners.map(nome), persone: c.kind === 'dish' ? squadre.flatMap(x => x.members) : t.winners };
 }
-const presenta = () => admin || state.presenterMode === 'app' || (state.presenter && state.presenter === me);
+// la busta la vede solo chi presenta (in modalità «Tutti» chiunque la apra)
+const presenta = () => state.presenterMode === 'app' || (!!state.presenter && state.presenter === me);
 function prossimoPresentatore(e) {
   const m = state.presenterMode, ppl = state.people;
   const caso = l => l.length ? l[Math.floor(Math.random() * l.length)] : state.presenter;
@@ -185,7 +187,7 @@ function screenSpoglio(cats) {
   const out = [h('div', { class: 'box' }, h('h3', {}, 'Gli Oscar del Capodanno'),
     h('h2', {}, corrente ? (state.presenter === me && state.presenterMode !== 'app' ? 'Presenti tu' : 'Presenta: ' + chi) : 'Cerimonia finita'),
     h('p', { class: 'sub' }, corrente
-      ? (presenta() ? 'Leggi la categoria, poi le nomination, poi apri la busta. Il vincitore ha 30 secondi per il discorso.' : 'Guarda qui: le buste si aprono una alla volta.')
+      ? (presenta() ? 'Le buste le vedi solo tu. Leggi ad alta voce categoria e nomination, poi guarda il vincitore e annuncialo. Poi ha 30 secondi per il discorso.' : 'Ascolta il presentatore: qui compare il vincitore appena lo annuncia.')
       : 'Tutte le statuette sono state consegnate.'))];
   let attivo = false;
   for (const c of cats) {
@@ -194,10 +196,7 @@ function screenSpoglio(cats) {
     const kids = [h('h3', {}, c.label)];
     if (open) {
       const t0 = Date.parse(state.revealedAt[c.id] || 0) || 0, dt = Date.now() - t0;
-      if (dt < SUSPENSE) {
-        attivo = true;
-        kids.push(h('p', { class: 'sub' }, 'E l’Oscar va a…'), h('p', { class: 'winner suspense', 'data-end': t0 + SUSPENSE }, String(Math.ceil((SUSPENSE - dt) / 1000))));
-      } else {
+      {
         kids.push(h('p', { class: 'winner' }, e.vincitori.length ? e.vincitori.join(' e ') : c.kind === 'auto' ? 'Nessuno' : 'Nessun voto'));
         if (c.kind === 'auto') {
           kids.push(h('p', { class: 'sub' }, e.d.length ? 'Il primo ad accusare il colpevole, alle ' + ora(e.d[0]) + '.' : 'Nessuno ha accusato il colpevole.'));
@@ -206,17 +205,22 @@ function screenSpoglio(cats) {
           if (e.squadre.length) kids.push(h('p', { class: 'sub' }, 'Vince la squadra ' + e.squadre.map(x => (menuById(x.menu)?.country ?? '') + ' (' + x.members.join(', ') + ')').join(' e la squadra ')));
           else if (e.t.winners.length > 1) kids.push(h('p', { class: 'sub' }, 'Ex aequo: due statuette.'));
         }
-        const left = DISCORSO - (dt - SUSPENSE);
-        if (left > 0 && e.vincitori.length) { attivo = true; kids.push(h('div', { class: 'speech' }, h('b', {}, 'Discorso di ringraziamento'), h('span', { class: 'count', 'data-end': t0 + SUSPENSE + DISCORSO, 'data-s': 1 }, Math.ceil(left / 1000) + ' s'), h('span', { class: 'bar' }, h('i', { 'data-end': t0 + SUSPENSE + DISCORSO, 'data-dur': DISCORSO, style: `width:${left / DISCORSO * 100}%` })))); }
+        const left = DISCORSO - dt;
+        if (left > 0 && e.vincitori.length) { attivo = true; kids.push(h('div', { class: 'speech' }, h('b', {}, 'Discorso di ringraziamento'), h('span', { class: 'count', 'data-end': t0 + DISCORSO, 'data-s': 1 }, Math.ceil(left / 1000) + ' s'), h('span', { class: 'bar' }, h('i', { 'data-end': t0 + DISCORSO, 'data-dur': DISCORSO, style: `width:${left / DISCORSO * 100}%` })))); }
         else if (e.t) kids.push(h('div', { class: 'tally' }, e.t.rows.map(([n, k]) => h('div', {}, h('span', {}, e.nome(n)), h('span', { class: 'count' }, `${k} ${k === 1 ? 'voto' : 'voti'}`),
           h('span', { class: 'bar' }, h('i', { style: `width:${e.t.top ? k / e.t.top * 100 : 0}%` }))))));
       }
-    } else if (nom) {
-      kids.push(h('p', { class: 'step', style: 'text-align:left' }, 'Le nomination'),
+    } else if (nom && cur && presenta()) {
+      kids.push(h('p', { class: 'step', style: 'text-align:left' }, 'Solo per te · leggi le nomination'),
         e.nomi.length ? h('ul', { class: 'nomi' }, e.nomi.map(n => h('li', {}, n))) : h('p', { class: 'sub' }, c.kind === 'auto' ? 'Nessuno ha indovinato il colpevole.' : 'Nessun voto.'));
-      if (cur && presenta()) kids.push(h('button', { class: 'btn', onclick: () => apriBusta(c) }, 'E l’Oscar va a…'));
+      if (sbircia !== c.id) kids.push(h('button', { class: 'btn', onclick: () => { sbircia = c.id; render(); } }, 'E l’Oscar va a… (guarda il vincitore)'));
+      else kids.push(h('p', { class: 'step', style: 'text-align:left' }, 'Annuncia ad alta voce'),
+        h('p', { class: 'winner' }, e.vincitori.length ? e.vincitori.join(' e ') : c.kind === 'auto' ? 'Nessuno' : 'Nessun voto'),
+        h('button', { class: 'btn', onclick: () => { sbircia = null; apriBusta(c); } }, 'Annunciato: parte il discorso'));
+    } else if (nom && cur) {
+      kids.push(h('p', { class: 'sub' }, 'Il presentatore ha aperto la busta: ascolta le nomination…'));
     } else if (cur && presenta()) {
-      kids.push(c.note ? h('p', { class: 'small' }, c.note) : null, h('button', { class: 'btn', onclick: () => patch({ nominated: [...state.nominated, c.id] }) }, 'Leggi le nomination'));
+      kids.push(c.note ? h('p', { class: 'small' }, c.note) : null, h('button', { class: 'btn', onclick: () => patch({ nominated: [...state.nominated, c.id] }) }, 'Apri la busta'));
     } else kids.push(h('p', { class: 'sub' }, cur ? 'Busta ancora sigillata' : 'Dopo'));
     out.push(h('div', { class: 'envelope' + (open ? ' reveal' : '') + (cur ? ' current' : '') }, kids));
   }
