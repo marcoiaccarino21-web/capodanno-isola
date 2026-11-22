@@ -422,7 +422,10 @@ function showMissione() {
     h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
       h('p', { class: 'eyebrow' }, 'Solo per te · non dirlo a nessuno'),
       h('h1', {}, 'Una ', h('em', {}, 'missione')),
-      h('p', { style: 'font-size:19px;line-height:1.5' }, 'Nell’ingresso, su una sedia, c’è la borsa del medico. Senza farti vedere, svuota la boccetta che c’è dentro nel lavandino e rimettila nella borsa, vuota. Poi torna all’aperitivo come se niente fosse. Presto capirai perché.'),
+      h('div', { style: 'font-size:18px;line-height:1.45' }, h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
+        h('li', {}, 'Nell’ingresso, su una sedia, c’è la borsa del medico. Senza farti vedere, svuota la boccetta che c’è dentro nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa.'),
+        h('li', {}, 'Verso le 19:50 sulle scale compare un vassoio con un bicchierino di amaro: è per il maestro. Quando nessuno guarda, versaci dentro la fialetta.'),
+        h('li', {}, 'Butta la fialetta vuota nel porticato, vicino alla porta. Poi torna all’aperitivo come se niente fosse.'))),
       h('button', { class: 'btn big', onclick: () => { save('task', String(g.task.at)); document.getElementById('missione')?.remove(); } }, 'Fatto, chiudi')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch {}
