@@ -9,7 +9,6 @@ export const CATEGORIES = [
   { id: 'chef',            label: 'Migliori chef del giro del mondo', kind: 'team', note: 'Premio di squadra' },
   { id: 'detective',       label: 'Miglior detective del giallo', kind: 'person' },
   { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person' },
-  { id: 'travestimento',   label: 'Miglior travestimento', kind: 'person' },
   { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person' },
   { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person' },
   { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person' }
@@ -31,8 +30,8 @@ export const PROGRAM = [
   { day: 'Giovedì 31 dicembre', title: 'Delitto a Villa Ferraris', rows: [
     ['Mattina', 'Gita a Valenza (24 km, mezz’ora di macchina): centro, Duomo e vetrina della bottega orafa del MOD'],
     ['Pranzo', 'Da decidere'],
-    ['Pomeriggio', 'Ragù vegetale e tiramisù tutti insieme, poi travestimenti'],
-    ['19:30', 'Aperitivo in piedi, travestiti: Ottavio Ferraris accoglie gli ospiti e brinda'],
+    ['Pomeriggio', 'Ragù vegetale e tiramisù tutti insieme, poi ognuno si mette il cartellino del suo personaggio'],
+    ['19:30', 'Aperitivo in piedi, con i cartellini a tracolla: Ottavio Ferraris accoglie gli ospiti e brinda'],
     ['20:00', 'Ottavio viene trovato morto: comincia il giallo'],
     ['20:15', 'Cena con delitto: antipasti, pasta al ragù vegetale, cotechino e lenticchie, tiramisù, con un sopralluogo per la casa tra una portata e l’altra'],
     ['23:10', 'Accuse dall’app, poi la soluzione'],
