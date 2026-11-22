@@ -236,7 +236,7 @@ function boxCartina() {
   const door = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="mp-door"/>`;
   const terra = `<svg viewBox="0 0 360 432" class="mp-svg" role="img" aria-label="Piantina del piano terra">
     ${R(10, 40, 160, 146, 'Camera', '', false)}
-    ${R(170, 60, 70, 90, 'Bagno', '', false, 11)}
+    ${R(170, 40, 70, 110, 'Bagno', '', false, 11)}
     ${R(240, 40, 110, 110, 'Camera', '', false)}
     ${R(170, 150, 120, 36, 'Corridoio notte', '', false, 10)}
     ${R(290, 150, 60, 36, 'Sgabuzzino', '', true, 10)}
