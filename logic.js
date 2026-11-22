@@ -5,9 +5,17 @@ export const MENUS = [
   { id: 'primo-dolce',       country: 'Giappone e Francia', course: 'Primo e dolce',     dish: 'Yakisoba con verdure, uovo e soia; crêpes con crema spalmabile o zucchero e limone' }
 ];
 
+export const DISHES = [
+  { id: 'nachos',   menu: 'antipasto-secondo', country: 'Messico',  label: 'Nachos con fagioli, guacamole e cheddar' },
+  { id: 'polenta',  menu: 'antipasto-secondo', country: 'Italia',   label: 'Polenta con funghi trifolati e fontina' },
+  { id: 'yakisoba', menu: 'primo-dolce',       country: 'Giappone', label: 'Yakisoba con verdure, uovo e soia' },
+  { id: 'crepes',   menu: 'primo-dolce',       country: 'Francia',  label: 'Crêpes' }
+];
+export const dishById = id => DISHES.find(d => d.id === id);
+
 export const CATEGORIES = [
-  { id: 'chef',            label: 'Migliori chef del giro del mondo', kind: 'team', note: 'Premio di squadra' },
-  { id: 'detective',       label: 'Miglior detective del giallo', kind: 'person' },
+  { id: 'piatto',          label: 'Piatto più buono della cena dei mondi', kind: 'dish', note: 'Vota il piatto, anche quello della tua squadra: vince la squadra che l’ha cucinato' },
+  { id: 'detective',       label: 'Miglior detective del giallo', kind: 'auto', note: 'Non si vota: vince chi ha accusato per primo il colpevole' },
   { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person' },
   { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person' },
   { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person' },
@@ -78,6 +86,7 @@ export const teamLabel = t => 'Squadra ' + (menuById(t.menu)?.country ?? t.menu)
 
 // Candidati per una categoria: mai se stessi, mai la propria squadra.
 export function nominees(cat, voter, state) {
+  if (cat.kind === 'dish') return DISHES.map(d => ({ value: d.id, label: d.label, sub: d.country }));
   if (cat.kind === 'team') {
     const mine = teamOf(state.teams, voter);
     return (state.teams || []).filter(t => t !== mine).map(t => ({ value: teamLabel(t), label: teamLabel(t), sub: t.members.join(', ') }));
@@ -85,8 +94,14 @@ export function nominees(cat, voter, state) {
   return (state.people || []).filter(p => p !== voter).map(p => ({ value: p, label: p }));
 }
 
-// Categorie votabili: quella di squadra solo se ci sono almeno 2 squadre.
-export const activeCategories = state => CATEGORIES.filter(c => c.kind !== 'team' || (state.teams || []).length >= 2);
+// Categorie votabili: il piatto solo se le squadre sono state sorteggiate; il detective non si vota.
+export const spoglioCategories = state => CATEGORIES.filter(c => c.kind !== 'dish' || (state.teams || []).length >= 1);
+export const activeCategories = state => spoglioCategories(state).filter(c => c.kind !== 'auto');
+
+// Miglior detective: chi ha accusato per primo il colpevole (in ordine di orario dell'accusa).
+export function detectives(accuse, culprit) {
+  return (accuse || []).filter(a => a.suspect === culprit).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
 
 export function tally(ballots, catId) {
   const t = {};
