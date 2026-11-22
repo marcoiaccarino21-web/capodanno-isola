@@ -11,7 +11,7 @@ import { NOMI, caricaRitratti } from './ritratti.js';
 
 /* ---------- stato ---------- */
 const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null };
-let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO };
+let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO, tavola: null };
 let RITRATTI = {};
 caricaRitratti().then(r => { RITRATTI = r; render(); }).catch(() => {});
 let accuse = [];            // [{id, voter, suspect}]
@@ -35,7 +35,7 @@ if (configured) {
   stateRef = doc(db, 'capodanno', 'stato');
   onSnapshot(stateRef, snap => {
     const v = snap.exists() ? snap.data() : {};
-    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], giallo: { ...NO_GIALLO, ...(v.giallo || {}) } };
+    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], giallo: { ...NO_GIALLO, ...(v.giallo || {}) }, tavola: v.tavola || null };
     loaded = true;
     if (me && !state.people.includes(me)) { me = null; save('me', null); if (tab !== 'regia') tab = 'chi'; }
     render();
@@ -294,6 +294,12 @@ function screenRegia() {
       h('div', { class: 'row' }, pin, h('button', { class: 'btn', onclick: tryPin }, 'Entra')))];
   }
   const out = [];
+  // a tavola: avviso a tutti i telefoni con l'app aperta
+  const ultimo = state.tavola && Date.now() - state.tavola.at < 30 * 60000;
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'A tavola'),
+    h('p', { class: 'sub' }, 'Fa comparire a tutti un avviso a schermo intero e fa vibrare il telefono. Arriva a chi ha l’app aperta.'),
+    ultimo ? h('p', { class: 'small' }, 'Ultimo avviso alle ' + new Date(state.tavola.at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) + '.') : null,
+    h('button', { class: 'btn', onclick: () => patch({ tavola: { at: Date.now() } }) }, 'A tavola!')));
   // partecipanti
   const inp = h('input', { type: 'text', id: 'nuovo', placeholder: 'Nome (es. Giulia)', maxlength: '30', autocomplete: 'off' });
   const add = async () => { const n = inp.value.trim(); if (!n || state.people.some(p => slug(p) === slug(n))) { inp.value = ''; return; }
@@ -371,7 +377,7 @@ async function resetAll() {
     await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
     const snap2 = await getDocs(collection(db, 'accuse'));
     await Promise.all(snap2.docs.map(d => deleteDoc(d.ref)));
-    await patch({ teams: [], votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO });
+    await patch({ teams: [], votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO, tavola: null });
   } catch (e) { error = 'Non sono riuscito ad azzerare (' + e.code + ').'; render(); }
 }
 
@@ -397,6 +403,22 @@ function render() {
   nav.replaceChildren(...tabs.map(([id, label]) => h('button', { 'aria-current': tab === id ? 'page' : null, onclick: () => go(me || id === 'programma' || id === 'regia' ? id : 'chi') }, label)));
   nav.hidden = !configured;
   showCall();
+  showTavola();
+}
+function showTavola() {
+  const t = state.tavola; const old = document.getElementById('tavola');
+  const due = t && Date.now() - t.at < 15 * 60000 && load('tavola') !== String(t.at) && !document.getElementById('chiamata');
+  if (!due) { old?.remove(); return; }
+  if (old) return;
+  const ok = () => { save('tavola', String(t.at)); document.getElementById('tavola')?.remove(); };
+  const el = h('div', { id: 'tavola', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:40;background:#171C36;display:flex;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
+      h('p', { class: 'eyebrow' }, 'Per tutti'),
+      h('h1', {}, 'A ', h('em', {}, 'tavola!')),
+      h('p', { style: 'font-size:19px;line-height:1.5' }, 'È pronto: tornate in salone e sedetevi.'),
+      h('button', { class: 'btn big', onclick: ok }, 'Arrivo')));
+  document.body.append(el);
+  try { navigator.vibrate && navigator.vibrate([300, 120, 300]); } catch {}
 }
 function showCall() {
   const g = state.giallo; const old = document.getElementById('chiamata');
