@@ -40,7 +40,7 @@ export const PROGRAM = [
     ['Dopo', 'Party game e giochi alcolici']
   ]},
   { day: 'Venerdì 1° gennaio', title: 'Nessuna sveglia, gran finale', rows: [
-    ['Mattina', 'Sveglia libera, colazione con caffè e panettone'],
+    ['Mattina', 'Sveglia libera, colazione'],
     ['13:00', 'Pranzo: trofie al pesto'],
     ['14:00', 'Gli Oscar del Capodanno: spoglio e premiazione'],
     ['14:45', 'Pulizie a squadre'],
