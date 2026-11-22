@@ -1,7 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
-import { MENUS, CATEGORIES, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, tally, assignCharacters } from './logic.js';
+import { MENUS, CATEGORIES, DISHES, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, assignCharacters } from './logic.js';
 import { GIALLO, femminile } from './giallo.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
@@ -106,10 +106,10 @@ function screenSquadra() {
 
 function screenOscar() {
   const cats = activeCategories(state);
-  if (state.opened) return screenSpoglio(cats);
+  if (state.opened) return screenSpoglio(spoglioCategories(state));
   if (!state.votingOpen) return [h('div', { class: 'box' }, h('h3', {}, 'Gli Oscar del Capodanno'), h('h2', {}, 'Le urne sono chiuse'),
     h('p', { class: 'sub' }, 'Si vota il 1° gennaio. Le categorie:'),
-    h('div', { class: 'list' }, CATEGORIES.map(c => h('div', { class: 'item' }, h('b', {}, c.kind === 'team' ? 'Squadra' : 'Persona'), h('span', {}, c.label)))))];
+    h('div', { class: 'list' }, CATEGORIES.map(c => h('div', { class: 'item' }, h('b', {}, c.kind === 'dish' ? 'Piatto' : c.kind === 'auto' ? 'Dalle accuse' : 'Persona'), h('span', {}, c.label)))))];
   if (myBallot()) return [h('div', { class: 'box reveal' }, h('h3', {}, 'Scheda nell’urna'), h('h2', {}, 'Hai votato'),
     h('p', { class: 'sub' }, `Hanno votato ${ballots.length} su ${state.people.length}. Le buste si aprono tutti insieme.`))];
   if (!flow) return [h('div', { class: 'box' }, h('h3', {}, 'Urne aperte'), h('h2', {}, 'Tocca a te, ' + me),
@@ -126,7 +126,7 @@ function screenOscar() {
         h('button', { class: 'btn', style: 'flex:2', disabled: !pick, onclick: () => { flow.i++; render(); window.scrollTo(0, 0); } }, flow.i === cats.length - 1 ? 'Rivedi la scheda' : 'Avanti'))];
   }
   return [h('div', { class: 'box' }, h('h3', {}, 'La tua scheda'), h('h2', {}, 'Tutto giusto?'),
-    h('div', { class: 'summary' }, cats.map(c => h('div', {}, h('span', { class: 'sub' }, c.label), h('span', {}, flow.votes[c.id])))),
+    h('div', { class: 'summary' }, cats.map(c => h('div', {}, h('span', { class: 'sub' }, c.label), h('span', {}, c.kind === 'dish' && dishById(flow.votes[c.id]) ? dishById(flow.votes[c.id]).label : flow.votes[c.id])))),
     h('button', { class: 'btn big', onclick: castVote }, 'Imbuca la scheda'),
     h('button', { class: 'btn ghost big', onclick: () => { flow.i = 0; render(); } }, 'Correggi'))];
 }
@@ -140,11 +140,25 @@ function screenSpoglio(cats) {
   const out = [h('div', { class: 'box' }, h('h3', {}, 'Spoglio'), h('h2', {}, 'Le buste sono aperte'),
     h('p', { class: 'sub' }, admin ? 'Apri una busta alla volta, con la statuetta in mano.' : 'L’organizzatore apre le buste una alla volta: guarda qui.'))];
   for (const c of cats) {
-    const open = state.revealed.includes(c.id); const t = tally(ballots, c.id);
+    const open = state.revealed.includes(c.id);
+    if (c.kind === 'auto') {
+      const d = detectives(accuse, GIALLO.culprit); const ora = x => new Date(x.at).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      out.push(h('div', { class: 'envelope' + (open ? ' reveal' : '') }, h('h3', {}, c.label),
+        open ? [h('p', { class: 'winner' }, d.length ? d[0].voter : 'Nessuno'),
+          h('p', { class: 'sub' }, d.length ? 'Il primo ad accusare il colpevole, alle ' + ora(d[0]) + '.' : 'Nessuno ha accusato il colpevole.'),
+          d.length > 1 ? h('p', { class: 'small' }, 'Dopo di lui: ' + d.slice(1).map(x => x.voter + ' (' + ora(x) + ')').join(', ')) : null]
+        : admin ? h('button', { class: 'btn', onclick: () => patch({ revealed: [...state.revealed, c.id] }) }, 'Apri la busta')
+        : h('p', { class: 'sub' }, 'Busta ancora sigillata')));
+      continue;
+    }
+    const t = tally(ballots, c.id);
+    const nome = v => c.kind === 'dish' && dishById(v) ? dishById(v).label + ' (' + dishById(v).country + ')' : v;
+    const squadre = c.kind === 'dish' ? [...new Set(t.winners.map(v => dishById(v)?.menu))].map(m => (state.teams || []).find(x => x.menu === m)).filter(Boolean) : [];
     out.push(h('div', { class: 'envelope' + (open ? ' reveal' : '') }, h('h3', {}, c.label),
-      open ? [h('p', { class: 'winner' }, t.winners.length ? t.winners.join(' e ') : 'Nessun voto'),
-        t.winners.length > 1 ? h('p', { class: 'sub' }, 'Ex aequo: due statuette.') : null,
-        h('div', { class: 'tally' }, t.rows.map(([n, k]) => h('div', {}, h('span', {}, n), h('span', { class: 'count' }, `${k} ${k === 1 ? 'voto' : 'voti'}`),
+      open ? [h('p', { class: 'winner' }, t.winners.length ? t.winners.map(nome).join(' e ') : 'Nessun voto'),
+        squadre.length ? h('p', { class: 'sub' }, 'Vince la squadra ' + squadre.map(x => (menuById(x.menu)?.country ?? '') + ' (' + x.members.join(', ') + ')').join(' e la squadra ')) : null,
+        t.winners.length > 1 && !squadre.length ? h('p', { class: 'sub' }, 'Ex aequo: due statuette.') : null,
+        h('div', { class: 'tally' }, t.rows.map(([n, k]) => h('div', {}, h('span', {}, nome(n)), h('span', { class: 'count' }, `${k} ${k === 1 ? 'voto' : 'voti'}`),
           h('span', { class: 'bar' }, h('i', { style: `width:${t.top ? k / t.top * 100 : 0}%` })))))]
         : admin ? h('button', { class: 'btn', onclick: () => patch({ revealed: [...state.revealed, c.id] }) }, 'Apri la busta')
         : h('p', { class: 'sub' }, 'Busta ancora sigillata')));
