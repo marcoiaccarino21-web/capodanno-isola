@@ -194,7 +194,7 @@ function screenGiallo() {
   const g = state.giallo; const out = [];
   // prima del ritrovamento i giocatori non sanno ancora che Ottavio morirà
   const morto = !!g.call || g.round > 0;
-  const prologo = GIALLO.setting.split(' Alle 20:00')[0];
+  const prologo = GIALLO.setting.split(' Alle 19:30')[0];
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, morto ? GIALLO.setting : prologo)));
   if (!g.assign.length) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei. Il resto lo scoprirai durante la serata.')));
@@ -214,7 +214,7 @@ function screenGiallo() {
     if (!morto && g.task && g.task.to === me) out.push(h('div', { class: 'box' }, h('h3', {}, 'La tua missione · non mostrarla'), h('div', { class: 'sub' }, passiMissione())));
     else {
       out.push(h('div', { class: 'box reveal' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
-        c.where ? h('h3', {}, 'Dove eri davvero · 19:55–20:05') : null, c.where ? h('p', {}, c.where) : null,
+        c.where ? h('h3', {}, 'Dove eri davvero · 19:25–19:35') : null, c.where ? h('p', {}, c.where) : null,
         h('h3', {}, 'Il tuo obiettivo'), h('p', {}, genere(c.goal, x.sesso, c.id))));
       const sbloccati = c.clues.slice(0, g.round);
       if (sbloccati.length) out.push(h('div', { class: 'box' }, h('h3', {}, sbloccati.length === 1 ? 'Il tuo indizio' : 'I tuoi indizi'),
@@ -281,7 +281,7 @@ function screenNarratore() {
     h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + O.costume),
     h('p', {}, 'Nel prologo sei vivo: accogli gli ospiti, brindi e muori. Poi torni come fantasma e guidi la serata. Giri, accuse e soluzione si comandano dalla Regia.'),
     admin ? h('button', { class: 'btn', onclick: () => go('regia') }, 'Vai alla Regia') : null));
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Il brindisi di Ottavio · verso le 19:45'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Il brindisi di Ottavio · verso le 19:15'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Una battuta per ogni ospite'), h('p', { class: 'small' }, 'Dille durante l’aperitivo, a ciascuno: lì per lì non significano niente, si capiscono dopo.'),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), genere(O.lines[a.c] || '', x.sesso, a.c))); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
@@ -295,7 +295,7 @@ function screenNarratore() {
   if (g.accuse || g.solved) out.push(...boxSoluzioneConteggio());
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'), galleria(g.assign, false),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.name + ': '), charById(a.c).costume)); }))));
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Solo per te · chi era dove tra le 19:55 e le 20:05'),
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Solo per te · chi era dove tra le 19:25 e le 19:35'),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), charById(a.c).where || '')); }))));
   return out;
 }
@@ -465,10 +465,10 @@ function render() {
 function passiMissione() {
   return h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
         h('li', {}, 'Adesso: nell’ingresso, sulla poltrona, c’è la borsa del medico. Senza farti vedere, svuota la boccetta nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa. Poi torna in salotto.'),
-        h('li', {}, '19:53: vai nel bagno della zona notte (oltre la porta scorrevole) e aspetta. Alle 19:55 suona il campanello: aspetta di sentir chiudere la porta di casa e poi quella del salotto.'),
-        h('li', {}, '19:56: esci, versa la fialetta nel bicchierino sul vassoio in cima alle scale e torna subito nella zona notte.'),
-        h('li', {}, '19:57: chiuditi nello sgabuzzino, nascondi la fialetta e aspetta al buio, senza farti sentire.'),
-        h('li', {}, '20:04: scendi nello studio (il maestro sarà già «morto»), prendi la Stella, lascia la vetrina aperta e torna nello sgabuzzino.'),
+        h('li', {}, '19:23: vai nel bagno della zona notte (oltre la porta scorrevole) e aspetta. Alle 19:25 suona il campanello: aspetta di sentir chiudere la porta di casa e poi quella del salotto.'),
+        h('li', {}, '19:26: esci, versa la fialetta nel bicchierino sul vassoio in cima alle scale e torna subito nella zona notte.'),
+        h('li', {}, '19:27: chiuditi nello sgabuzzino, nascondi la fialetta e aspetta al buio, senza farti sentire.'),
+        h('li', {}, '19:34: scendi nello studio (il maestro sarà già «morto»), prendi la Stella, lascia la vetrina aperta e torna nello sgabuzzino.'),
         h('li', {}, 'All’allarme: lascia passare chi corre giù dal salotto, entra nel salotto vuoto e nascondi la Stella sotto il fagiano impagliato. Poi, appena senti rientrare dalla porta di casa quelli che erano fuori, unisciti a loro e scendi insieme. Se ti chiedono: eri in camera a incartare il regalo per il maestro.'));
 }
 function showMissione() {
