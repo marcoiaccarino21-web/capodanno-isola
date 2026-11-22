@@ -245,7 +245,7 @@ function boxCartina() {
     ${R(10, 186, 95, 80, 'Cucina', '', true, 12)}
     ${R(10, 266, 165, 114, 'Salone', 'salotto', true, 15)}
     ${R(175, 186, 65, 194, 'Ingresso', '', true, 12)}
-    <path d="M-14 266 H10 V380 H240 V414 H-14 Z" class="mp-in"/><text x="125" y="395" class="mp-t" style="font-size:12px">Giardino</text><text x="125" y="408" class="mp-s">porticato</text>
+    <path d="M-14 266 H10 V380 H240 V414 H-14 Z" class="mp-in"/><text x="125" y="401" class="mp-t" style="font-size:13px">Porticato</text>
     ${door(186, 186, 229, 186)}${door(175, 205, 175, 245)}${door(175, 272, 175, 304)}${door(190, 380, 225, 380)}${door(130, 380, 165, 380)}${door(290, 156, 290, 180)}${door(170, 156, 170, 180)}
     <text x="207" y="372" class="mp-s">porta di casa</text><text x="128" y="370" class="mp-s">porta-finestra</text>
     <text x="-14" y="24" class="mp-h">PIANO TERRA</text></g></svg>`;
@@ -261,7 +261,7 @@ function boxCartina() {
     ${R(80, 36, 200, 52, 'Cantina', 'capannone', true, 14)}
     <rect x="128" y="98" width="26" height="26" rx="5" class="mp-in"/><text x="141" y="117" class="mp-t" style="font-size:16px">P</text>
     ${R(40, 136, 120, 62, 'Villa', '', false, 13)}
-    <path d="M24 168 H40 V198 H160 V214 H24 Z" class="mp-in"/><text x="100" y="210" class="mp-s">porticato</text>
+    <path d="M24 168 H40 V198 H160 V214 H24 Z" class="mp-in"/><text x="100" y="210" class="mp-s" style="fill:var(--cream);font-weight:700">Porticato</text>
     ${R(232, 146, 96, 46, 'Gazebo', 'angolo del giardino', true, 12)}
     <text x="290" y="114" class="mp-s">giardino</text></svg>`;
   const box = h('div', { class: 'mp' });
@@ -469,7 +469,7 @@ function passiMissione() {
         h('li', {}, '19:56: esci, versa la fialetta nel bicchierino sul vassoio in cima alle scale e torna subito nella zona notte.'),
         h('li', {}, '19:57: chiuditi nello sgabuzzino, nascondi la fialetta e aspetta al buio, senza farti sentire.'),
         h('li', {}, '20:04: scendi nello studio (il maestro sarà già «morto»), prendi la Stella, lascia la vetrina aperta e torna nello sgabuzzino.'),
-        h('li', {}, 'All’allarme: aspetta che tutti siano scesi nello studio, entra nel salotto vuoto, nascondi la Stella sotto il fagiano impagliato, poi scendi anche tu, dopo tutti, come se arrivassi dalla cantina.'));
+        h('li', {}, 'All’allarme: lascia passare chi corre giù dal salotto, entra nel salotto vuoto e nascondi la Stella sotto il fagiano impagliato. Poi, appena senti rientrare dalla porta di casa quelli che erano fuori, unisciti a loro e scendi insieme. Se ti chiedono: eri in camera a incartare il regalo per il maestro.'));
 }
 function showMissione() {
   const g = state.giallo; const old = document.getElementById('missione');
@@ -513,7 +513,7 @@ function showAllarme() {
     h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
       h('p', { class: 'eyebrow' }, 'Villa Ferraris'),
       h('h1', {}, 'Il maestro ', h('em', {}, 'è morto!')),
-      h('p', { style: 'font-size:19px;line-height:1.5' }, ugi ? 'Aspetta che tutti siano scesi nello studio. Poi entra nel salotto vuoto, nascondi la Stella sotto il fagiano e scendi anche tu, dopo tutti.' : 'Correte tutti giù nello studio, adesso.'),
+      h('p', { style: 'font-size:19px;line-height:1.5' }, ugi ? 'Lascia passare chi corre giù dal salotto, entra nel salotto vuoto e nascondi la Stella sotto il fagiano. Poi scendi insieme a chi rientra da fuori.' : 'Correte tutti giù nello studio, adesso.'),
       h('button', { class: 'btn big', onclick: ok }, ugi ? 'Ok' : 'Corro')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([500, 150, 500, 150, 500]); } catch {}
