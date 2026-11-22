@@ -270,7 +270,7 @@ function boxCartina() {
     h('p', { class: 'small' }, 'In grassetto il nome nella storia, sotto il posto vero. In grigio le stanze fuori gioco: porte chiuse.'), box);
 }
 function boxStanze() {
-  // solo per il narratore: i giocatori scoprono le stanze dal vivo, con i cartelli e gli oggetti
+  // solo per il narratore: i giocatori scoprono le stanze dal vivo, con la cartina e gli oggetti
   return h('div', { class: 'box' }, h('h3', {}, 'Le stanze della villa'),
     h('div', { class: 'list' }, GIALLO.rooms.map(x => h('div', { class: 'item' }, h('b', {}, x.name + ' · giro ' + x.round), h('span', {}, x.text)))));
 }
