@@ -14,12 +14,12 @@ export const DISHES = [
 export const dishById = id => DISHES.find(d => d.id === id);
 
 export const CATEGORIES = [
-  { id: 'piatto',          label: 'Piatto più buono della cena dei mondi', kind: 'dish', note: 'Vota il piatto, anche quello della tua squadra: vince la squadra che l’ha cucinato' },
+  { id: 'piatto',          label: 'Piatto più buono della cena dei mondi', kind: 'dish', note: 'Il piatto che ti è piaciuto di più, quello di cui avresti fatto il bis. Puoi votare anche quello della tua squadra: vince la squadra che l’ha cucinato.' },
   { id: 'detective',       label: 'Miglior detective del giallo', kind: 'auto', note: 'Non si vota: vince chi ha accusato per primo il colpevole' },
-  { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person', noNarrator: true },
-  { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person' },
-  { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person' },
-  { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person' }
+  { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person', noNarrator: true, note: 'Chi è entrato di più nel personaggio durante il giallo: voce, battute, bugie credibili, colpi di scena. Conta come ha recitato, non se ha indovinato il colpevole.' },
+  { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person', note: 'Chi è stato al centro della scena più surreale di questi tre giorni: una frase, una figuraccia, un’idea folle. Quella che racconterete ancora l’anno prossimo.' },
+  { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person', note: 'Chi ha fatto più fatica a ingranare dopo le nottate: ultimo ad alzarsi, a colazione con gli occhi chiusi, ancora in pigiama a pranzo.' },
+  { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person', note: 'Chi ti ha sorpreso di più: un talento nascosto in cucina o nel giallo, un lato che non conoscevi, la persona che non ti aspettavi.' }
 ];
 
 export const PROGRAM = [
