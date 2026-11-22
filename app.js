@@ -192,39 +192,45 @@ const myAccusa = () => me && accuse.find(a => a.id === slug(me));
 
 function screenGiallo() {
   const g = state.giallo; const out = [];
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, GIALLO.setting)));
+  // prima del ritrovamento i giocatori non sanno ancora che Ottavio morirà
+  const morto = !!g.call || g.round > 0;
+  const prologo = GIALLO.setting.split(' Alle 20:00')[0];
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, morto ? GIALLO.setting : prologo)));
   if (!g.assign.length) {
-    out.push(h('div', { class: 'box' }, h('h3', {}, 'Come funziona'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r))),
-      h('p', { class: 'small' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei e cosa indossare.')));
+    out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei. Il resto lo scoprirai durante la serata.')));
     return out;
   }
   if (me && me === g.narrator) return [...out, ...screenNarratore()];
   const c = myChar();
   if (c) {
     const x = pers(state.giallo.assign.find(a => a.p === me));
-    out.push(h('div', { class: 'box gold reveal' }, ritratto(x.key), h('h3', {}, 'Il tuo personaggio · ' + x.role), h('p', { class: 'big-dish' }, x.name),
-      h('p', { style: 'font-size:16px;font-weight:600' }, 'Travestimento: ' + c.costume), h('p', {}, genere(c.intro, x.sesso, c.id))));
-    out.push(h('div', { class: 'box' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
-      c.where ? h('h3', {}, 'Dove eri davvero · 19:55–20:05') : null, c.where ? h('p', {}, c.where) : null,
-      h('h3', {}, 'Il tuo obiettivo'), h('p', {}, genere(c.goal, x.sesso, c.id))));
-    out.push(h('div', { class: 'box' }, h('h3', {}, 'I tuoi indizi'),
-      h('div', { class: 'list' }, c.clues.map((t, i) => h('div', { class: 'item' }, h('b', {}, 'Giro ' + (i + 1)),
-        g.round > i ? h('span', {}, genere(t, x.sesso, c.id)) : h('span', { class: 'small' }, 'Si sblocca durante la cena'))))));
+    out.push(h('div', { class: 'box gold reveal' }, h('h3', {}, 'Il tuo personaggio · ' + x.role), h('p', { class: 'big-dish' }, x.name),
+      h('p', {}, genere(c.intro, x.sesso, c.id)),
+      h('p', { style: 'font-size:15px;font-weight:600' }, 'Porta a tracolla il tuo cartellino. Il personaggio è solo sul tuo telefono: non farlo vedere a nessuno.')));
+    if (!morto) out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Goditi l’aperitivo nei panni del tuo personaggio. Il resto arriva sul telefono durante la serata.')));
+    else {
+      out.push(h('div', { class: 'box reveal' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
+        c.where ? h('h3', {}, 'Dove eri davvero · 19:55–20:05') : null, c.where ? h('p', {}, c.where) : null,
+        h('h3', {}, 'Il tuo obiettivo'), h('p', {}, genere(c.goal, x.sesso, c.id))));
+      const sbloccati = c.clues.slice(0, g.round);
+      if (sbloccati.length) out.push(h('div', { class: 'box' }, h('h3', {}, sbloccati.length === 1 ? 'Il tuo indizio' : 'I tuoi indizi'),
+        h('div', { class: 'list' }, sbloccati.map((t, i) => h('div', { class: 'item' + (i === sbloccati.length - 1 ? ' reveal' : '') }, h('b', {}, 'Giro ' + (i + 1)), h('span', {}, genere(t, x.sesso, c.id)))))));
+    }
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
   }
-  out.push(boxStanze());
+  if (g.round > 0) out.push(boxStanze());
   if (g.accuse && !g.solved) out.push(...boxAccusa());
   if (g.solved) out.push(...boxSoluzione());
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'), galleria(g.assign, true)));
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Le regole'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r)))));
+  if (morto) out.push(h('div', { class: 'box' }, h('h3', {}, 'Le regole'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.rules.map(r => h('li', {}, r)))));
   return out;
 }
 function boxStanze(all) {
   const r = state.giallo.round;
-  return h('div', { class: 'box' }, h('h3', {}, 'Sopralluogo · le stanze della villa'),
-    h('div', { class: 'list' }, GIALLO.rooms.map(x => h('div', { class: 'item' }, h('b', {}, x.name),
-      all || r >= x.round ? h('span', {}, x.text) : h('span', { class: 'small' }, 'Ancora sigillata: si apre al giro ' + x.round)))));
+  // ai giocatori solo le stanze già aperte, senza anticipare le prossime
+  const rooms = all ? GIALLO.rooms : GIALLO.rooms.filter(x => r >= x.round);
+  return h('div', { class: 'box' }, h('h3', {}, all ? 'Le stanze della villa' : 'Le stanze aperte'),
+    h('div', { class: 'list' }, rooms.map(x => h('div', { class: 'item' }, h('b', {}, all ? x.name + ' · giro ' + x.round : x.name), h('span', {}, x.text)))));
 }
 function screenNarratore() {
   const g = state.giallo; const out = [];
