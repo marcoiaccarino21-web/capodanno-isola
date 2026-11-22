@@ -13,6 +13,22 @@ export const DISHES = [
 ];
 export const dishById = id => DISHES.find(d => d.id === id);
 
+// Spesa di squadra alla Metro, dopo la parte comune: solo gli ingredienti del proprio menu.
+// Uova, latte, burro, cipolle, carote, olio, zucchero e crema spalmabile sono nella spesa comune.
+export const SPESA = {
+  'antipasto-secondo': [
+    ['Tortilla chips', '3 buste da 200 g'], ['Fagioli neri o rossi', '2 lattine'], ['Jalapeños', '1 vasetto'],
+    ['Avocado', '4'], ['Pomodori', '4'], ['Lime', '4'], ['Coriandolo (o prezzemolo)', '1 mazzo'],
+    ['Panna acida (o yogurt greco)', '200 g'], ['Cheddar grattugiato (o emmental)', '400 g'],
+    ['Funghi champignon (o misti)', '1,5 kg'], ['Fontina (o toma)', '500 g'], ['Farina per polenta, bramata o istantanea', '1 kg']
+  ],
+  'primo-dolce': [
+    ['Noodles: udon o ramen secchi (o spaghetti)', '1 kg'], ['Cavolo cinese (o verza)', '600 g'], ['Zenzero fresco', '1 radice'],
+    ['Cipollotti', '1 mazzo'], ['Aglio', '1 testa'], ['Salsa di soia', '1 bottiglia'], ['Olio di sesamo', '1 bottiglia'],
+    ['Olio di semi', '1 l'], ['Farina 00', '1 kg'], ['Limoni', '3']
+  ]
+};
+
 export const CATEGORIES = [
   { id: 'piatto',          label: 'Piatto più buono della cena dei mondi', kind: 'dish', note: 'Il piatto che ti è piaciuto di più, quello di cui avresti fatto il bis. Puoi votare anche quello della tua squadra: vince la squadra che l’ha cucinato.' },
   { id: 'detective',       label: 'Miglior detective del giallo', kind: 'auto', note: 'Non si vota: vince chi ha accusato per primo il colpevole' },

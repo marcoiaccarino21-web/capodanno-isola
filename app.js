@@ -1,7 +1,7 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
-import { MENUS, CATEGORIES, DISHES, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, nominations, assignCharacters } from './logic.js';
+import { MENUS, CATEGORIES, DISHES, SPESA, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, nominations, assignCharacters } from './logic.js';
 import { GIALLO, femminile } from './giallo.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
@@ -79,11 +79,22 @@ function screenChi() {
     h('div', { class: 'names' }, state.people.map(p => h('button', { class: 'name', onclick: () => { me = p; save('me', p); go(HOME); } }, p))))];
 }
 
+// lista della spesa della squadra: le spunte restano solo su questo telefono
+function boxSpesa(menu) {
+  const lista = SPESA[menu] || []; const key = 'spesa:' + menu;
+  let fatti = []; try { fatti = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
+  const toggle = i => { fatti = fatti.includes(i) ? fatti.filter(x => x !== i) : [...fatti, i]; try { localStorage.setItem(key, JSON.stringify(fatti)); } catch (e) {} render(); };
+  return h('div', { class: 'box' }, h('h3', {}, 'La spesa della tua squadra'),
+    h('p', { class: 'small' }, `Alla Metro, dopo la parte comune. ${fatti.length} su ${lista.length} nel carrello. Poi tutti alla cassa insieme: uova, latte, burro, cipolle, carote, olio, zucchero e crema spalmabile sono già nella spesa comune.`),
+    h('div', { class: 'spesa' }, lista.map(([cosa, qt], i) => h('button', { class: 'nominee', 'aria-pressed': fatti.includes(i) ? 'true' : 'false', onclick: () => toggle(i) },
+      h('span', {}, (fatti.includes(i) ? '✓ ' : '') + cosa), h('small', {}, qt)))));
+}
+
 function screenSquadra() {
   const out = [];
   if (!state.teams.length) {
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena giro del mondo'), h('h2', {}, 'Squadre ancora da sorteggiare'),
-      h('p', { class: 'sub' }, 'Il sorteggio si fa una settimana prima, così ognuno sa cosa comprare. Appena estratte, qui vedrai la tua squadra e cosa cucinare.')));
+      h('p', { class: 'sub' }, 'Il sorteggio si fa alla Metro il 30 mattina, dopo la spesa comune. Appena estratte, qui vedrai la tua squadra, cosa cucinare e la lista della spesa.')));
     return out;
   }
   const t = teamOf(state.teams, me);
@@ -98,6 +109,7 @@ function screenSquadra() {
       h('div', { class: 'list' },
         h('div', { class: 'item' }, h('b', {}, 'Mercoledì 30'), h('span', {}, 'Dalle 17:30 ai fornelli, con la tua squadra')),
         h('div', { class: 'item' }, h('b', {}, '20:00'), h('span', {}, 'A tavola: si servono le portate')))));
+    out.push(boxSpesa(t.menu));
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non sei in nessuna squadra: chiedi all’organizzatore di rifare il sorteggio.')));
   }
