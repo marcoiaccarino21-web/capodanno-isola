@@ -242,9 +242,9 @@ function boxCartina() {
     ${R(290, 150, 60, 36, 'Sgabuzzino', '', true, 10)}
     ${R(240, 186, 110, 94, 'Camera', '', false)}
     ${R(105, 186, 70, 80, 'Scale', 'allo studio', true, 12)}
-    ${R(10, 186, 95, 80, 'Cucina', 'angolo cottura', true, 11)}
+    ${R(10, 186, 95, 80, 'Cucina', '', true, 12)}
     ${R(10, 266, 165, 114, 'Salone', 'salotto', true, 15)}
-    ${R(175, 186, 65, 194, 'Ingresso', 'poltrona', true, 12)}
+    ${R(175, 186, 65, 194, 'Ingresso', '', true, 12)}
     <path d="M-14 266 H10 V380 H240 V414 H-14 Z" class="mp-in"/><text x="125" y="395" class="mp-t" style="font-size:12px">Giardino</text><text x="125" y="408" class="mp-s">porticato</text>
     ${door(186, 186, 229, 186)}${door(175, 205, 175, 245)}${door(175, 272, 175, 304)}${door(190, 380, 225, 380)}${door(130, 380, 165, 380)}${door(290, 156, 290, 180)}${door(170, 156, 170, 180)}
     <text x="207" y="372" class="mp-s">porta di casa</text><text x="128" y="370" class="mp-s">porta-finestra</text>
