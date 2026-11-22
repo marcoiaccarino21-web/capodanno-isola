@@ -10,7 +10,7 @@ if (SOLO) document.title = 'Delitto a Villa Ferraris';
 import { NOMI, caricaRitratti } from './ritratti.js';
 
 /* ---------- stato ---------- */
-const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null };
+const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null, allarme: null };
 let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], giallo: NO_GIALLO, tavola: null };
 let RITRATTI = {};
 caricaRitratti().then(r => { RITRATTI = r; render(); }).catch(() => {});
@@ -207,7 +207,11 @@ function screenGiallo() {
     out.push(h('div', { class: 'box gold reveal' }, h('h3', {}, 'Il tuo personaggio · ' + x.role), h('p', { class: 'big-dish' }, x.name),
       h('p', {}, genere(c.intro, x.sesso, c.id)),
       h('p', { style: 'font-size:15px;font-weight:600' }, 'Porta a tracolla il tuo cartellino. Il personaggio è solo sul tuo telefono: non farlo vedere a nessuno.')));
+    if (g.call && g.call.to === me && !g.allarme && g.round === 0) out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Nello studio'),
+      h('p', {}, 'Quando trovi il maestro, premi qui e grida: «Il maestro è morto!»'),
+      h('button', { class: 'btn big', onclick: () => patch({ giallo: { ...state.giallo, allarme: { at: Date.now() } } }) }, 'Allarme!')));
     if (!morto) out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Goditi l’aperitivo nei panni del tuo personaggio. Il resto arriva sul telefono durante la serata.')));
+    if (!morto && g.task && g.task.to === me) out.push(h('div', { class: 'box' }, h('h3', {}, 'La tua missione · non mostrarla'), h('div', { class: 'sub' }, passiMissione())));
     else {
       out.push(h('div', { class: 'box reveal' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
         c.where ? h('h3', {}, 'Dove eri davvero · 19:55–20:05') : null, c.where ? h('p', {}, c.where) : null,
@@ -219,9 +223,51 @@ function screenGiallo() {
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
   }
+  if (c || (me && me === g.narrator)) out.push(boxCartina());
   if (g.accuse && !g.solved) out.push(...boxAccusa());
   if (g.solved) out.push(...boxSoluzione());
   return out;
+}
+function boxCartina() {
+  // piantina schematica della casa vera (non in scala): nome nella storia in grande, posto vero sotto
+  const R = (x, y, w, hh, nome, vero, gioco = true, fs = 12) => `<g><rect x="${x}" y="${y}" width="${w}" height="${hh}" rx="4" class="${gioco ? 'mp-in' : 'mp-out'}"/>` +
+    `<text x="${x + w / 2}" y="${y + hh / 2 - (vero ? 3 : -4)}" class="mp-t" style="font-size:${fs}px">${nome}</text>` +
+    (vero ? `<text x="${x + w / 2}" y="${y + hh / 2 + 11}" class="mp-s">${vero}</text>` : '') + '</g>';
+  const door = (x1, y1, x2, y2) => `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" class="mp-door"/>`;
+  const terra = `<svg viewBox="0 0 384 432" class="mp-svg" role="img" aria-label="Piantina del piano terra"><g transform="translate(24,0)">
+    ${R(10, 40, 160, 146, 'Camera', '', false)}
+    ${R(170, 40, 70, 110, 'Bagno', '', false, 11)}
+    ${R(240, 40, 110, 110, 'Camera', '', false)}
+    ${R(170, 150, 120, 36, 'Corridoio notte', '', false, 10)}
+    ${R(290, 150, 60, 36, 'Sgabuzzino', '', true, 10)}
+    ${R(240, 186, 110, 94, 'Camera', '', false)}
+    ${R(105, 186, 70, 80, 'Scale', 'allo studio', true, 12)}
+    ${R(10, 186, 95, 80, 'Cucina', '', true, 12)}
+    ${R(10, 266, 165, 114, 'Salone', 'salotto', true, 15)}
+    ${R(175, 186, 65, 194, 'Ingresso', '', true, 12)}
+    <path d="M-14 266 H10 V380 H240 V414 H-14 Z" class="mp-in"/><text x="125" y="395" class="mp-t" style="font-size:12px">Giardino</text><text x="125" y="408" class="mp-s">porticato</text>
+    ${door(186, 186, 229, 186)}${door(175, 205, 175, 245)}${door(175, 272, 175, 304)}${door(190, 380, 225, 380)}${door(130, 380, 165, 380)}${door(290, 156, 290, 180)}${door(170, 156, 170, 180)}
+    <text x="207" y="372" class="mp-s">porta di casa</text><text x="128" y="370" class="mp-s">porta-finestra</text>
+    <text x="-14" y="24" class="mp-h">PIANO TERRA</text></g></svg>`;
+  const sotto = `<svg viewBox="0 0 360 150" class="mp-svg" role="img" aria-label="Piantina del seminterrato">
+    <text x="10" y="18" class="mp-h">SEMINTERRATO</text>
+    ${R(10, 30, 240, 110, 'Studio di Ottavio', 'seminterrato', true, 15)}
+    ${R(250, 30, 50, 60, 'Scale', '', true, 10)}
+    ${R(250, 90, 100, 50, 'Bagno', 'in fondo alle scale', true, 11)}
+    ${door(250, 50, 250, 80)}${door(265, 90, 290, 90)}</svg>`;
+  const fuori = `<svg viewBox="0 0 360 236" class="mp-svg" role="img" aria-label="Il terreno visto dall’alto">
+    <text x="10" y="18" class="mp-h">FUORI</text>
+    <rect x="10" y="28" width="340" height="200" rx="8" class="mp-garden"/>
+    ${R(80, 36, 200, 52, 'Cantina', 'capannone', true, 14)}
+    <rect x="128" y="98" width="26" height="26" rx="5" class="mp-in"/><text x="141" y="117" class="mp-t" style="font-size:16px">P</text>
+    ${R(40, 136, 120, 62, 'Villa', '', false, 13)}
+    <path d="M24 168 H40 V198 H160 V214 H24 Z" class="mp-in"/><text x="100" y="210" class="mp-s">porticato</text>
+    ${R(232, 146, 96, 46, 'Gazebo', 'angolo del giardino', true, 12)}
+    <text x="290" y="114" class="mp-s">giardino</text></svg>`;
+  const box = h('div', { class: 'mp' });
+  box.innerHTML = terra + sotto + fuori;
+  return h('div', { class: 'box' }, h('h3', {}, 'La villa · cartina'),
+    h('p', { class: 'small' }, 'In grassetto il nome nella storia, sotto il posto vero. In grigio le stanze fuori gioco: porte chiuse.'), box);
 }
 function boxStanze() {
   // solo per il narratore: i giocatori scoprono le stanze dal vivo, con i cartelli e gli oggetti
@@ -241,6 +287,7 @@ function screenNarratore() {
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
     h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
+  out.push(boxCartina());
   out.push(boxStanze());
   const ca = g.assign.find(a => a.c === GIALLO.culprit); const who = ca?.p;
   out.push(h('div', { class: 'envelope' }, h('h3', {}, 'Solo per te · la soluzione'),
@@ -334,6 +381,7 @@ function screenRegia() {
   const callee = GIALLO.callOrder.map(id => g.assign.find(a => a.c === id)).find(Boolean);
   if (g.assign.length && g.round === 0 && callee) gBtns.push(h('button', { class: g.call ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, call: { to: callee.p, at: Date.now() } } }) },
     g.call ? 'Rimanda l’avviso a ' + callee.p : 'Manda ' + callee.p + ' nello studio'));
+  if (g.call && g.round === 0 && !g.allarme) gBtns.push(h('button', { class: 'btn ghost', onclick: () => patch({ giallo: { ...g, allarme: { at: Date.now() } } }) }, 'Dai tu l’allarme a tutti'));
   // durante l'aperitivo: il colpevole va a svuotare davvero la boccetta del medico
   const killer = g.assign.find(a => a.c === GIALLO.culprit);
   if (killer && g.round === 0 && !g.call) gBtns.push(h('button', { class: g.task ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, task: { to: killer.p, at: Date.now() } } }) },
@@ -411,8 +459,18 @@ function render() {
   showCall();
   showMissione();
   showTavola();
+  showAllarme();
 }
 // avviso privato al colpevole durante l'aperitivo: non gli dice ancora che è il colpevole
+function passiMissione() {
+  return h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
+        h('li', {}, 'Adesso: nell’ingresso, sulla poltrona, c’è la borsa del medico. Senza farti vedere, svuota la boccetta nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa. Poi torna in salotto.'),
+        h('li', {}, '19:53: vai nel bagno della zona notte (oltre la porta scorrevole) e aspetta. Alle 19:55 suona il campanello: aspetta di sentir chiudere la porta di casa e poi quella del salotto.'),
+        h('li', {}, '19:56: esci, versa la fialetta nel bicchierino sul vassoio in cima alle scale e torna subito nella zona notte.'),
+        h('li', {}, '19:57: chiuditi nello sgabuzzino, nascondi la fialetta e aspetta al buio, senza farti sentire.'),
+        h('li', {}, '20:04: scendi nello studio (il maestro sarà già «morto»), prendi la Stella, lascia la vetrina aperta e torna nello sgabuzzino.'),
+        h('li', {}, 'All’allarme: aspetta che tutti siano scesi nello studio, entra nel salotto vuoto, nascondi la Stella sotto il fagiano impagliato, poi scendi anche tu, dopo tutti, come se arrivassi dalla cantina.'));
+}
 function showMissione() {
   const g = state.giallo; const old = document.getElementById('missione');
   const due = g && g.task && g.task.to === me && !g.call && g.round === 0 && load('task') !== String(g.task.at) && !document.getElementById('chiamata');
@@ -422,10 +480,7 @@ function showMissione() {
     h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
       h('p', { class: 'eyebrow' }, 'Solo per te · non dirlo a nessuno'),
       h('h1', {}, 'Una ', h('em', {}, 'missione')),
-      h('div', { style: 'font-size:18px;line-height:1.45' }, h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
-        h('li', {}, 'Nell’ingresso, su una sedia, c’è la borsa del medico. Senza farti vedere, svuota la boccetta che c’è dentro nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa.'),
-        h('li', {}, 'Verso le 19:50 sulle scale compare un vassoio con un bicchierino di amaro: è per il maestro. Quando nessuno guarda, versaci dentro la fialetta.'),
-        h('li', {}, 'Butta la fialetta vuota nel porticato, vicino alla porta. Poi torna all’aperitivo come se niente fosse.'))),
+      h('div', { style: 'font-size:18px;line-height:1.45' }, passiMissione()),
       h('button', { class: 'btn big', onclick: () => { save('task', String(g.task.at)); document.getElementById('missione')?.remove(); } }, 'Fatto, chiudi')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch {}
@@ -444,6 +499,24 @@ function showTavola() {
       h('button', { class: 'btn big', onclick: ok }, 'Arrivo')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([300, 120, 300]); } catch {}
+}
+function showAllarme() {
+  const g = state.giallo; const old = document.getElementById('allarme');
+  const killer = g && g.assign.find(a => a.c === GIALLO.culprit);
+  const due = g && g.allarme && me && me !== g.narrator && !(g.call && g.call.to === me) && g.assign.some(a => a.p === me)
+    && Date.now() - g.allarme.at < 10 * 60000 && load('allarme') !== String(g.allarme.at);
+  if (!due) { old?.remove(); return; }
+  if (old) return;
+  const ugi = killer && killer.p === me;
+  const ok = () => { save('allarme', String(g.allarme.at)); document.getElementById('allarme')?.remove(); };
+  const el = h('div', { id: 'allarme', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:48;background:#171C36;display:flex;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
+      h('p', { class: 'eyebrow' }, 'Villa Ferraris'),
+      h('h1', {}, 'Il maestro ', h('em', {}, 'è morto!')),
+      h('p', { style: 'font-size:19px;line-height:1.5' }, ugi ? 'Aspetta che tutti siano scesi nello studio. Poi entra nel salotto vuoto, nascondi la Stella sotto il fagiano e scendi anche tu, dopo tutti.' : 'Correte tutti giù nello studio, adesso.'),
+      h('button', { class: 'btn big', onclick: ok }, ugi ? 'Ok' : 'Corro')));
+  document.body.append(el);
+  try { navigator.vibrate && navigator.vibrate([500, 150, 500, 150, 500]); } catch {}
 }
 function showCall() {
   const g = state.giallo; const old = document.getElementById('chiamata');
