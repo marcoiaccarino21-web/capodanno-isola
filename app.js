@@ -513,7 +513,7 @@ function showAllarme() {
     h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
       h('p', { class: 'eyebrow' }, 'Villa Ferraris'),
       h('h1', {}, 'Il maestro ', h('em', {}, 'è morto!')),
-      h('p', { style: 'font-size:19px;line-height:1.5' }, ugi ? 'Lascia passare chi corre giù dal salotto, entra nel salotto vuoto e nascondi la Stella sotto il fagiano. Poi scendi insieme a chi rientra da fuori.' : 'Correte tutti giù nello studio, adesso.'),
+      h('p', { style: 'font-size:19px;line-height:1.5' }, ugi ? 'Lascia passare chi corre giù dal salotto, entra nel salotto vuoto e nascondi la Stella sotto il fagiano. Poi scendi insieme a chi rientra da fuori.' : 'Correte tutti giù nello studio, adesso. Chi è fuori rientra dalla porta di casa.'),
       h('button', { class: 'btn big', onclick: ok }, ugi ? 'Ok' : 'Corro')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([500, 150, 500, 150, 500]); } catch {}
