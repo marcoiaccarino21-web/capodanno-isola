@@ -86,7 +86,7 @@ function boxSpesa(menu) {
   let fatti = []; try { fatti = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
   const toggle = i => { fatti = fatti.includes(i) ? fatti.filter(x => x !== i) : [...fatti, i]; try { localStorage.setItem(key, JSON.stringify(fatti)); } catch (e) {} render(); };
   return h('div', { class: 'box' }, h('h3', {}, 'La spesa della tua squadra'),
-    h('p', { class: 'small' }, `Tutto quello che serve al vostro menu, dosi per 11. ${fatti.length} su ${lista.length} nel carrello. Poi tutti alla cassa insieme.`),
+    h('p', { class: 'small' }, `Tutto quello che serve al vostro menu, dosi per 12. ${fatti.length} su ${lista.length} nel carrello. Poi tutti alla cassa insieme.`),
     h('div', { class: 'spesa' }, lista.map(([cosa, qt], i) => h('button', { class: 'nominee', 'aria-pressed': fatti.includes(i) ? 'true' : 'false', onclick: () => toggle(i) },
       h('span', {}, (fatti.includes(i) ? '✓ ' : '') + cosa), h('small', {}, qt)))));
 }
@@ -112,7 +112,7 @@ function screenSquadra() {
         h('div', { class: 'item' }, h('b', {}, '20:00'), h('span', {}, 'A tavola: si servono le portate')))));
     out.push(boxSpesa(t.menu));
     for (const d of DISHES.filter(x => x.menu === t.menu)) { const r = RICETTE[d.id]; if (!r) continue;
-      out.push(h('details', { class: 'box ricetta' }, h('summary', {}, h('h3', {}, 'Ricetta · ' + r.portata + ' · ' + d.country), h('strong', {}, d.label), h('span', { class: 'small' }, 'Per 11 · ' + r.tempo)),
+      out.push(h('details', { class: 'box ricetta' }, h('summary', {}, h('h3', {}, 'Ricetta · ' + r.portata + ' · ' + d.country), h('strong', {}, d.label), h('span', { class: 'small' }, 'Per 12 · ' + r.tempo)),
         h('ol', {}, r.passi.map(x => h('li', {}, x))))); }
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non sei in nessuna squadra: chiedi all’organizzatore di rifare il sorteggio.')));

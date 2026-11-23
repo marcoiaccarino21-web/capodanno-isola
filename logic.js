@@ -13,14 +13,14 @@ export const DISHES = [
 ];
 export const dishById = id => DISHES.find(d => d.id === id);
 
-// Spesa di squadra alla Metro: tutto quello che serve al menu della squadra, dosi per 11 (cena di 4 portate).
+// Spesa di squadra alla Metro: tutto quello che serve al menu della squadra, dosi per 12 (cena di 4 portate).
 export const SPESA = {
   'antipasto-secondo': [
     ['Tortilla chips', '3 buste da 200 g'], ['Fagioli neri o rossi', '2 lattine'], ['Jalapeños', '1 vasetto'],
-    ['Avocado maturi', '6'], ['Pomodori', '4'], ['Lime', '6'], ['Cipolla rossa', '1'], ['Coriandolo', '1 mazzo'],
+    ['Avocado maturi', '7'], ['Pomodori', '4'], ['Lime', '6'], ['Cipolla rossa', '1'], ['Coriandolo', '1 mazzo'],
     ['Panna acida (o yogurt greco)', '250 g'], ['Cheddar grattugiato (o emmental)', '400 g'],
     ['Funghi champignon (o misti)', '2 kg'], ['Aglio', '1 testa'], ['Prezzemolo', '1 mazzo'],
-    ['Fontina (o toma)', '700 g'], ['Farina per polenta, bramata o istantanea', '1 kg'], ['Burro', '250 g'],
+    ['Fontina (o toma)', '750 g'], ['Farina per polenta, bramata o istantanea', '1 kg'], ['Burro', '250 g'],
     ['Olio extravergine', '1 bottiglia da 0,5 l'], ['Sale grosso e fino, pepe', 'se mancano in casa']
   ],
   'primo-dolce': [
@@ -144,10 +144,10 @@ export function assignCharacters(people, order, narrator, rnd = Math.random) {
   return ppl.map((p, i) => ({ p, c: order[i] }));
 }
 
-// Ricette per 11 persone: ogni piatto è una delle 4 portate della cena. Un solo forno: lo usano solo i nachos.
+// Ricette per 12 persone: ogni piatto è una delle 4 portate della cena. Un solo forno: lo usano solo i nachos.
 export const RICETTE = {
   nachos: { portata: 'Antipasto', tempo: '30 minuti, forno a 200 °C', passi: [
-    'Guacamole: schiaccia 6 avocado con il succo di 3 lime, mezza cipolla rossa tritata finissima, 2 pomodori a dadini senza semi, coriandolo tritato e sale. Jalapeños tritati a piacere. Copri con la pellicola a contatto, se no annerisce.',
+    'Guacamole: schiaccia 7 avocado con il succo di 3 lime, mezza cipolla rossa tritata finissima, 2 pomodori a dadini senza semi, coriandolo tritato e sale. Jalapeños tritati a piacere. Copri con la pellicola a contatto, se no annerisce.',
     'Fagioli: scola e sciacqua le 2 lattine, scaldale in padella con un filo d’olio, uno spicchio d’aglio e sale. Schiacciane metà con la forchetta.',
     'Accendi il forno a 200 °C. Su 2 teglie con carta forno fai uno strato di chips, fagioli a cucchiaiate, cheddar e qualche rondella di jalapeño, poi un secondo strato uguale.',
     'Inforna 6-8 minuti, finché il formaggio fonde e non oltre: le chips bruciano in fretta. Infornale appena vi sedete a tavola.',
