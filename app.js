@@ -1,8 +1,9 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+import { getFirestore, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, DISHES, SPESA, RICETTE, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, nominations, assignCharacters } from './logic.js';
 import { GIALLO, femminile } from './giallo.js';
+import { PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG } from './giochi.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
 const HOME = SOLO ? 'giallo' : 'squadra';
@@ -12,7 +13,7 @@ import { ACCESSORI, cartellino, pdfDi, PDF_TUTTI } from './accessori.js';
 
 /* ---------- stato ---------- */
 const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null, allarme: null };
-let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], nominated: [], revealedAt: {}, presenter: null, presenterMode: 'staffetta', giallo: NO_GIALLO, tavola: null };
+let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], nominated: [], revealedAt: {}, presenter: null, presenterMode: 'staffetta', giallo: NO_GIALLO, tavola: null, gioco: null };
 let RITRATTI = {};
 caricaRitratti().then(r => { RITRATTI = r; render(); }).catch(() => {});
 let accuse = [];            // [{id, voter, suspect}]
@@ -36,7 +37,7 @@ if (configured) {
   stateRef = doc(db, 'capodanno', 'stato');
   onSnapshot(stateRef, snap => {
     const v = snap.exists() ? snap.data() : {};
-    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], nominated: v.nominated || [], revealedAt: v.revealedAt || {}, presenter: v.presenter || null, presenterMode: v.presenterMode || 'staffetta', giallo: { ...NO_GIALLO, ...(v.giallo || {}) }, tavola: v.tavola || null };
+    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], nominated: v.nominated || [], revealedAt: v.revealedAt || {}, presenter: v.presenter || null, presenterMode: v.presenterMode || 'staffetta', giallo: { ...NO_GIALLO, ...(v.giallo || {}) }, tavola: v.tavola || null, gioco: v.gioco || null };
     loaded = true;
     if (me && !state.people.includes(me)) { me = null; save('me', null); if (tab !== 'regia') tab = 'chi'; }
     render();
@@ -539,6 +540,192 @@ async function resetAll() {
   } catch (e) { error = 'Non sono riuscito ad azzerare (' + e.code + ').'; render(); }
 }
 
+
+/* ---------- giochi: impostore e lupus ---------- */
+let setup = null;           // { tipo, sel: [nomi], opz }
+let cartaAperta = false;    // carta personale mostrata (resta coperta finché non la tocchi)
+let chiuso = '';            // fase già chiusa da questo telefono (evita scritture doppie)
+async function setGioco(g) {
+  try { await updateDoc(stateRef, { gioco: g }); error = ''; }
+  catch (e) { error = 'Salvataggio non riuscito (' + e.code + '). Riprova.'; render(); }
+}
+async function setCampo(path, v) {
+  try { await updateDoc(stateRef, { [path]: v }); error = ''; }
+  catch (e) { error = 'Voto non salvato (' + e.code + '). Riprova.'; render(); }
+}
+// chiude in automatico la fase quando tutti hanno fatto la loro mossa: lo fa il primo telefono che se ne accorge
+function avanzaGioco() {
+  const g = state.gioco; if (!g) return;
+  const k = g.id + ':' + g.fase + ':' + (g.turno || 0);
+  if (chiuso === k) return;
+  if (g.tipo === 'lupus' && g.fase === 'notte' && notteCompleta(g)) { chiuso = k; setGioco(risolviNotte(g)); }
+  else if (g.tipo === 'lupus' && g.fase === 'giorno' && giornoCompleto(g)) { chiuso = k; setGioco(risolviGiorno(g)); }
+  else if (g.tipo === 'impostore' && g.fase === 'voto' && g.players.every(p => (g.voti || {})[slugG(p)])) { chiuso = k; setCampo('gioco.fase', 'svelato'); }
+}
+const nomiBtn = (lista, scelto, onpick, disabled) => h('div', { class: 'names' }, lista.map(p => h('button', { class: 'name', 'aria-pressed': scelto === p ? 'true' : 'false',
+  style: scelto === p ? 'border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)' : null, disabled: disabled || null, onclick: () => onpick(p) }, p)));
+const conferma = (id, label, azione, stile = 'btn ghost') => confirm === id
+  ? h('div', { class: 'row' }, h('button', { class: 'btn danger', onclick: () => { confirm = null; azione(); } }, 'Sì, ' + label.toLowerCase()), h('button', { class: 'btn ghost', onclick: () => { confirm = null; render(); } }, 'Annulla'))
+  : h('button', { class: stile, onclick: () => { confirm = id; render(); } }, label);
+function cartaCoperta(titolo, contenuto) {
+  return h('div', { class: 'envelope' + (cartaAperta ? ' current' : '') }, h('h3', {}, titolo),
+    cartaAperta ? contenuto : h('p', { class: 'sub' }, 'Coperta: guardala senza farti vedere.'),
+    h('button', { class: 'btn ' + (cartaAperta ? 'ghost' : ''), onclick: () => { cartaAperta = !cartaAperta; render(); } }, cartaAperta ? 'Copri' : 'Tocca per vedere'));
+}
+function fineBox(g) {
+  return h('div', { class: 'box' }, h('h3', {}, 'Partita'),
+    h('p', { class: 'small' }, `Avviata da ${g.by} · ${g.players.length} giocatori. Chiunque può chiuderla o rigiocarla.`),
+    h('div', { class: 'row' }, conferma('gend', 'Chiudi la partita', () => { cartaAperta = false; setGioco(null); })));
+}
+
+let ultimoGioco = null;
+function screenGiochi() {
+  const g = state.gioco;
+  if ((g && g.id) !== ultimoGioco) { ultimoGioco = g && g.id; cartaAperta = false; }
+  if (g && g.tipo === 'impostore') return screenImpostore(g);
+  if (g && g.tipo === 'lupus') return screenLupus(g);
+  if (setup) return screenSetup();
+  return [h('div', { class: 'box' }, h('h3', {}, 'Giochi'), h('h2', {}, 'A cosa giochiamo?'),
+      h('p', { class: 'sub' }, 'Chiunque può far partire una partita: ognuno gioca dal suo telefono. Una partita alla volta.')),
+    h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'impostore', sel: [...state.people], opz: { impostori: 1, modo: 'sa', indizio: true } }; render(); } },
+      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'L’impostore'), h('small', {}, 'Tutti hanno la stessa parola tranne l’impostore. A turno dite una parola collegata, poi votate chi bluffa. Da 3 giocatori.')),
+    h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'lupus', sel: [...state.people], opz: { lupi: 0, veggente: true, guardia: true, medium: true } }; render(); } },
+      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Lupus in fabula'), h('small', {}, 'Lupi contro villaggio. Di notte i lupi sbranano, di giorno il villaggio vota chi giustiziare. L’app fa da narratore. Da 5 giocatori.'))];
+}
+
+function screenSetup() {
+  const s = setup; const n = s.sel.length; const lup = s.tipo === 'lupus';
+  const min = lup ? 5 : 3;
+  const toggle = p => { s.sel = s.sel.includes(p) ? s.sel.filter(x => x !== p) : [...s.sel, p]; render(); };
+  const opt = (label, on, fn) => h('button', { class: 'nominee', 'aria-pressed': on ? 'true' : 'false', onclick: () => { fn(); render(); } }, h('span', {}, (on ? '✓ ' : '') + label));
+  const out = [h('div', { class: 'box' }, h('h3', {}, 'Nuova partita'), h('h2', {}, lup ? 'Lupus in fabula' : 'L’impostore'),
+    h('p', { class: 'sub' }, `Chi gioca? ${n} selezionati.`),
+    h('div', { class: 'names' }, state.people.map(p => h('button', { class: 'nominee', 'aria-pressed': s.sel.includes(p) ? 'true' : 'false', onclick: () => toggle(p) }, h('span', {}, (s.sel.includes(p) ? '✓ ' : '') + p)))))];
+  if (!lup) {
+    const maxImp = Math.max(1, Math.floor((n - 1) / 2));
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Regole'),
+      h('div', { class: 'row' }, h('span', {}, 'Impostori'), ...[1, 2].map(k => h('button', { class: k === s.opz.impostori ? 'btn' : 'btn ghost', disabled: k > maxImp || null, onclick: () => { s.opz.impostori = k; render(); } }, String(k)))),
+      opt('L’impostore sa di esserlo (non ha la parola)', s.opz.modo === 'sa', () => { s.opz.modo = 'sa'; }),
+      s.opz.modo === 'sa' ? opt('…ma vede la categoria come indizio', s.opz.indizio, () => { s.opz.indizio = !s.opz.indizio; }) : null,
+      opt('Infiltrato: ha una parola simile e non sa di essere l’impostore', s.opz.modo === 'infiltrato', () => { s.opz.modo = 'infiltrato'; })));
+  } else {
+    const cons = lupiConsigliati(n); const lupi = s.opz.lupi || cons; const maxL = Math.max(1, Math.floor((n - 1) / 2));
+    const spec = ['veggente', 'guardia', 'medium'].filter(r => s.opz[r]).length;
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Ruoli'),
+      h('div', { class: 'row' }, h('span', {}, 'Lupi'), h('button', { class: 'btn ghost', disabled: lupi <= 1 || null, onclick: () => { s.opz.lupi = lupi - 1; render(); } }, '−'),
+        h('strong', { style: 'font-size:20px;min-width:24px;text-align:center' }, String(Math.min(lupi, maxL))),
+        h('button', { class: 'btn ghost', disabled: lupi >= maxL || null, onclick: () => { s.opz.lupi = lupi + 1; render(); } }, '+'),
+        h('span', { class: 'small' }, `consigliati ${cons}`)),
+      ...['veggente', 'guardia', 'medium'].map(r => opt(RUOLI[r].nome + ' · ' + RUOLI[r].desc, s.opz[r], () => { s.opz[r] = !s.opz[r]; })),
+      h('p', { class: 'small' }, `Contadini: ${Math.max(0, n - Math.min(lupi, maxL) - spec)}. I morti non rivelano il ruolo: lo scopre solo il medium.`)));
+  }
+  out.push(h('div', { class: 'row' },
+    h('button', { class: 'btn ghost', style: 'flex:1', onclick: () => { setup = null; render(); } }, 'Indietro'),
+    h('button', { class: 'btn', style: 'flex:2', disabled: n < min || !me || null, onclick: () => {
+      const players = state.people.filter(p => s.sel.includes(p));
+      const g = lup ? nuovoLupus(players, me, { ...s.opz, lupi: s.opz.lupi || lupiConsigliati(players.length) }) : nuovoImpostore(players, me, s.opz, (state.gioco && state.gioco.usate) || []);
+      setup = null; cartaAperta = false; setGioco(g);
+    } }, n < min ? `Servono almeno ${min} giocatori` : 'Inizia la partita')));
+  return out;
+}
+
+function screenImpostore(g) {
+  const out = []; const gioca = g.players.includes(me); const voti = g.voti || {};
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'L’impostore · ' + (g.opz.impostori > 1 ? g.opz.impostori + ' impostori' : '1 impostore')),
+    h('h2', {}, g.fase === 'svelato' ? 'Svelato!' : g.fase === 'voto' ? 'Si vota' : 'Giro di parole'),
+    h('p', { class: 'sub' }, g.fase === 'gioco' ? `Guarda la tua carta. Poi a turno, nell’ordine qui sotto, ognuno dice UNA parola legata alla sua. ${g.opz.modo === 'infiltrato' ? 'Attenzione: l’impostore non sa di esserlo, ha una parola simile.' : 'L’impostore deve bluffare.'} Fate due o tre giri, poi votate.` : g.fase === 'voto' ? `Hanno votato ${Object.keys(voti).length} su ${g.players.length}.` : '')));
+  if (g.fase !== 'svelato') {
+    if (gioca) { const c = cartaImpostore(g, me);
+      out.push(cartaCoperta('La tua carta', c.impostore
+        ? h('div', {}, h('p', { class: 'winner' }, 'Sei l’impostore'), h('p', { class: 'sub' }, c.categoria ? 'Categoria: ' + c.categoria + '. Ascolta gli altri e bluffa.' : 'Nessun indizio: ascolta gli altri e bluffa.'))
+        : h('div', {}, h('p', { class: 'winner' }, c.parola), h('p', { class: 'sub' }, 'Categoria: ' + c.categoria)))); }
+    else out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non sei in questa partita: guardati lo spettacolo.')));
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Ordine di parola'), h('ol', { class: 'nomi' }, g.ordine.map(p => h('li', { class: p === me ? 'mine' : null }, p)))));
+  }
+  if (g.fase === 'gioco') out.push(h('button', { class: 'btn big', onclick: () => setCampo('gioco.fase', 'voto') }, 'Passiamo al voto'));
+  if (g.fase === 'voto') {
+    const mio = voti[slugG(me)];
+    if (gioca) out.push(h('div', { class: 'box' }, h('h3', {}, mio ? 'Hai votato ' + mio : 'Chi è l’impostore?'),
+      nomiBtn(g.players.filter(p => p !== me), mio, p => setCampo('gioco.voti.' + slugG(me), p), !!mio)));
+    out.push(h('p', { class: 'small' }, 'Mancano: ' + (g.players.filter(p => !voti[slugG(p)]).join(', ') || 'nessuno')));
+    out.push(conferma('gsvela', 'Svela adesso', () => setCampo('gioco.fase', 'svelato')));
+  }
+  if (g.fase === 'svelato') {
+    const [cat, parola, simile] = PAROLE[g.parola]; const top = piuVotati(voti, g.players);
+    const preso = top.length === 1 && g.impostori.includes(top[0]);
+    out.push(h('div', { class: 'envelope current reveal' }, h('h3', {}, g.impostori.length > 1 ? 'Gli impostori erano' : 'L’impostore era'),
+      h('p', { class: 'winner' }, g.impostori.join(' e ')),
+      h('p', { class: 'sub' }, `Parola: ${parola} (${cat})` + (g.opz.modo === 'infiltrato' ? ` · l’impostore aveva: ${simile}` : '')),
+      Object.keys(voti).length ? h('p', { style: 'font-weight:700' }, preso ? 'Beccato! ' + (g.opz.modo === 'sa' ? 'Ultima chance: se indovina la parola, vince lui.' : 'Vince il gruppo.') : top.length ? 'Il gruppo ha sbagliato: vince l’impostore.' : '') : null));
+    const t = contaVoti(voti, g.players);
+    if (t.length) out.push(h('div', { class: 'box tally' }, h('h3', {}, 'Voti'), ...t.map(([p, k]) => h('div', {}, h('span', {}, p), h('span', { class: 'count' }, String(k)),
+      h('div', { class: 'bar' }, h('i', { style: `width:${Math.round(k / g.players.length * 100)}%` }))))));
+    out.push(h('button', { class: 'btn big', onclick: () => { cartaAperta = false; setGioco(nuovoImpostore(g.players, me, g.opz, g.usate || [])); } }, 'Nuova parola, stessi giocatori'));
+  }
+  out.push(fineBox(g));
+  return out;
+}
+
+function screenLupus(g) {
+  const out = []; const gioca = g.players.includes(me); const alive = vivi(g); const vivo = alive.includes(me);
+  const r = gioca ? ruoloDi(g, me) : null; const R = r && RUOLI[r]; const mk = slugG(me);
+  const lupiAltri = r === 'lupo' ? g.players.filter(p => p !== me && ruoloDi(g, p) === 'lupo') : [];
+  const titolo = g.fase === 'fine' ? 'Fine partita' : g.fase === 'notte' ? 'Notte ' + g.turno : 'Giorno ' + g.turno;
+  out.push(h('div', { class: 'box' + (g.fase === 'notte' ? '' : ' gold') }, h('h3', {}, 'Lupus in fabula · ' + alive.length + ' vivi'), h('h2', {}, titolo),
+    h('p', { class: 'sub' }, g.fase === 'notte' ? 'Il villaggio dorme. Tutti toccano un nome sul telefono, in silenzio e senza guardare gli schermi degli altri.'
+      : g.fase === 'giorno' ? (g.notti['n' + g.turno]?.esito?.morto ? `Stanotte i lupi hanno sbranato ${g.notti['n' + g.turno].esito.morto}.` : 'Stanotte non è morto nessuno.') + ' Discutete, poi votate chi giustiziare.'
+      : g.fase === 'esito' ? (g.giorni['g' + g.turno]?.esito?.giustiziato ? `Il villaggio ha giustiziato ${g.giorni['g' + g.turno].esito.giustiziato}.` : 'Pareggio: oggi nessuno viene giustiziato.')
+      : g.vince === 'lupi' ? 'Hanno vinto i lupi.' : 'Ha vinto il villaggio: i lupi sono tutti morti.')));
+  // carta personale
+  if (gioca && g.fase !== 'fine') out.push(cartaCoperta('Il tuo ruolo' + (vivo ? '' : ' · sei morto'), h('div', {}, h('p', { class: 'winner' }, R.nome), h('p', { class: 'sub' }, R.desc),
+    lupiAltri.length ? h('p', { class: 'sub' }, 'Gli altri lupi: ' + lupiAltri.join(', ')) : null,
+    r === 'veggente' ? h('p', { class: 'sub' }, Object.entries(g.notti).filter(([, n]) => n.az?.[mk]).map(([k, n]) => `${k.slice(1)}ª notte: ${n.az[mk]} ${ruoloDi(g, n.az[mk]) === 'lupo' ? 'è un LUPO' : 'non è un lupo'}`).join(' · ') || 'Ancora nessuna visione.') : null)));
+  if (!gioca) out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non sei in questa partita.')));
+  // morti: vedono tutto
+  if (gioca && !vivo && g.fase !== 'fine') out.push(h('div', { class: 'box' }, h('h3', {}, 'Sei morto: non parlare!'), h('p', { class: 'small' }, 'Da morto vedi tutti i ruoli.'),
+    h('div', { class: 'list' }, g.players.map(p => h('div', { class: 'item' }, h('b', {}, RUOLI[ruoloDi(g, p)].nome), h('span', {}, p + (g.morti.includes(p) ? ' (morto)' : '')))))));
+  // notte
+  if (g.fase === 'notte') {
+    const az = g.notti['n' + g.turno]?.az || {}; const mio = az[mk];
+    if (vivo) {
+      const domanda = { lupo: 'Chi sbraniamo stanotte?', veggente: 'Di chi vuoi scoprire il ruolo?', guardia: 'Chi proteggi stanotte?', medium: 'Tocca un nome qualsiasi', contadino: 'Tocca chi sospetti' }[r];
+      const box = [h('h3', {}, mio ? 'Fatto: ' + mio : 'La tua mossa'), h('h2', {}, domanda)];
+      if (r === 'medium') { const ieri = g.giorni['g' + (g.turno - 1)]?.esito?.giustiziato;
+        box.push(h('p', { class: 'sub' }, ieri ? `La visione: ${ieri}, giustiziato ieri, ${ruoloDi(g, ieri) === 'lupo' ? 'ERA un lupo' : 'NON era un lupo'}.` : 'Nessun giustiziato ieri: niente visione.')); }
+      if (r === 'lupo' && lupiAltri.length) box.push(h('p', { class: 'small' }, lupiAltri.filter(p => alive.includes(p)).map(p => `${p}: ${az[slugG(p)] || 'sta scegliendo'}`).join(' · ') + '. A pari voti sceglie la sorte.'));
+      if (r === 'veggente' && mio) box.push(h('p', { class: 'winner' }, `${mio} ${ruoloDi(g, mio) === 'lupo' ? 'è un LUPO' : 'non è un lupo'}`));
+      box.push(nomiBtn(bersagliNotte(g, me), mio, p => setCampo(`gioco.notti.n${g.turno}.az.${mk}`, p), !!mio));
+      out.push(h('div', { class: 'box' }, ...box));
+    }
+    const mancano = alive.filter(p => !az[slugG(p)]);
+    out.push(h('p', { class: 'small' }, `Hanno scelto ${alive.length - mancano.length} su ${alive.length}. All’ultimo arriva l’alba.`));
+  }
+  // giorno: voto
+  if (g.fase === 'giorno') {
+    const voti = g.giorni['g' + g.turno]?.voti || {}; const mio = voti[mk];
+    if (vivo) out.push(h('div', { class: 'box' }, h('h3', {}, mio ? 'Hai votato ' + mio : 'Il tuo voto'), h('h2', {}, 'Chi giustiziamo?'),
+      nomiBtn(alive.filter(p => p !== me), mio, p => setCampo(`gioco.giorni.g${g.turno}.voti.${mk}`, p), !!mio)));
+    const mancano = alive.filter(p => !voti[slugG(p)]);
+    out.push(h('p', { class: 'small' }, `Hanno votato ${alive.length - mancano.length} su ${alive.length}` + (mancano.length ? ': mancano ' + mancano.join(', ') : '') + '. A pari voti non muore nessuno.'));
+  }
+  if (g.fase === 'esito') {
+    const t = contaVoti(g.giorni['g' + g.turno]?.voti, g.players);
+    out.push(h('div', { class: 'box tally' }, h('h3', {}, 'Voti di oggi'), ...t.map(([p, k]) => h('div', {}, h('span', {}, p), h('span', { class: 'count' }, String(k)),
+      h('div', { class: 'bar' }, h('i', { style: `width:${Math.round(k / alive.length * 100)}%` }))))));
+    out.push(h('button', { class: 'btn big', onclick: () => setGioco(nuovaNotte(g)) }, 'Cala la notte'));
+  }
+  if (g.fase === 'fine') {
+    out.push(h('div', { class: 'envelope current reveal' }, h('h3', {}, 'Vincono'), h('p', { class: 'winner' }, g.vince === 'lupi' ? 'I lupi' : 'Il villaggio'),
+      h('div', { class: 'list' }, g.players.map(p => h('div', { class: 'item' }, h('b', {}, RUOLI[ruoloDi(g, p)].nome), h('span', {}, p + (g.morti.includes(p) ? ' †' : '')))))));
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Com’è andata'), h('ol', { class: 'nomi', style: 'font-size:15px' }, g.log.map(x => h('li', {}, x)))));
+    out.push(h('button', { class: 'btn big', onclick: () => { cartaAperta = false; setGioco(nuovoLupus(g.players, me, g.opz)); } }, 'Rigioca, stessi giocatori'));
+  }
+  // se qualcuno si addormenta davvero
+  if ((g.fase === 'notte' || g.fase === 'giorno') && gioca) out.push(conferma('gforza', 'Qualcuno non risponde: procedi senza', () => setGioco(g.fase === 'notte' ? risolviNotte(g) : risolviGiorno(g))));
+  out.push(fineBox(g));
+  return out;
+}
+
 /* ---------- impaginazione ---------- */
 function render() {
   const app = document.getElementById('app'); const nav = document.getElementById('tabs');
@@ -551,15 +738,16 @@ function render() {
   else if (!loaded) body = [h('p', { class: 'sub' }, 'Caricamento…')];
   else if (SOLO && !['chi', 'giallo', 'regia'].includes(tab)) { tab = me ? 'giallo' : 'chi'; body = me ? screenGiallo() : screenChi(); }
   else if (tab === 'chi' || (!me && tab !== 'regia')) body = screenChi();
-  else body = { squadra: screenSquadra, giallo: screenGiallo, oscar: screenOscar, regia: screenRegia }[tab]();
+  else body = { squadra: screenSquadra, giallo: screenGiallo, oscar: screenOscar, giochi: screenGiochi, regia: screenRegia }[tab]();
   const foot = !admin && tab !== 'regia' && configured ? h('button', { class: 'btn ghost', style: 'align-self:center;font-size:13px;min-height:36px;padding:6px 14px;opacity:.7', onclick: () => go('regia') }, 'Area organizzatore') : null;
   app.replaceChildren(...[head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body, foot].filter(Boolean));
   // barra in basso
-  const tabs = SOLO ? [['giallo', 'Giallo']] : [['squadra', 'Cena dei mondi'], ['giallo', 'Giallo'], ['oscar', 'Oscar']];
+  const tabs = SOLO ? [['giallo', 'Giallo']] : [['squadra', 'Cena dei mondi'], ['giallo', 'Giallo'], ['oscar', 'Oscar'], ['giochi', 'Giochi']];
   if (admin) tabs.push(['regia', 'Regia']);
   nav.style.setProperty('--n', tabs.length);
   nav.replaceChildren(...tabs.map(([id, label]) => h('button', { 'aria-current': tab === id ? 'page' : null, onclick: () => go(me || id === 'regia' ? id : 'chi') }, label)));
   nav.hidden = !configured;
+  avanzaGioco();
   showCall();
   showMissione();
   showTavola();
