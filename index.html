@@ -29,6 +29,17 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;line-height:1.15;ma
 h3{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin:0;font-weight:700}
 p{margin:0}
 .sub{color:var(--muted);font-size:15px}
+.mp{display:flex;flex-direction:column;gap:14px}
+.mp-svg{width:100%;height:auto;display:block}
+.mp-in{fill:var(--night-3);stroke:var(--gold);stroke-width:1.2}
+.mp-out{fill:var(--night);stroke:var(--line);stroke-width:1}
+.mp-garden{fill:rgba(120,160,110,.12);stroke:var(--line);stroke-dasharray:4 4}
+.mp-door{stroke:var(--cream);stroke-width:4;stroke-linecap:round;opacity:.85}
+.mp-t{fill:var(--cream);font-weight:700;text-anchor:middle;font-family:var(--body)}
+.mp-out + .mp-t{fill:var(--faint);font-weight:500}
+.mp-s{fill:var(--muted);font-size:9.5px;text-anchor:middle;font-family:var(--body)}
+.mp-h{fill:var(--faint);font-size:11px;font-weight:700;letter-spacing:.08em;font-family:var(--body)}
+
 .small{color:var(--faint);font-size:13px}
 .box{background:var(--night-2);border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;min-width:0}
 .box.gold{background:var(--gold);border-color:var(--gold);color:var(--night)}
@@ -56,6 +67,8 @@ input[type=text],input[type=password]{flex:1;min-width:0;background:var(--night)
 .big-dish{font-family:var(--display);font-size:34px;font-weight:700;line-height:1.05}
 .nominees{display:flex;flex-direction:column;gap:10px}
 .nominee{background:var(--night-2);border:1px solid var(--line);color:var(--cream);border-radius:14px;padding:16px;font:600 17px var(--body);text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+.ricetta summary{cursor:pointer;display:flex;flex-direction:column;gap:4px;list-style:none}.ricetta summary::after{content:'Tocca per aprire';color:var(--gold);font-size:13px;font-weight:700}.ricetta[open] summary::after{content:'Tocca per chiudere'}.ricetta ol{margin:12px 0 0;padding-left:20px;display:flex;flex-direction:column;gap:10px;line-height:1.5}
+.spesa{display:flex;flex-direction:column;gap:8px}.spesa .nominee{padding:12px 14px;font-size:16px}.spesa .nominee[aria-pressed="true"] span{text-decoration:line-through;opacity:.7}
 .nominee small{color:var(--muted);font-weight:500;font-size:13px}
 .nominee[aria-pressed="true"]{border-color:var(--gold);background:var(--night-3);box-shadow:inset 0 0 0 1px var(--gold)}
 .step{color:var(--gold);font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;text-align:center;font-variant-numeric:tabular-nums}
@@ -63,6 +76,10 @@ input[type=text],input[type=password]{flex:1;min-width:0;background:var(--night)
 .summary div span:last-child{font-weight:700;text-align:right}
 .envelope{background:linear-gradient(160deg,var(--night-3),var(--night-2));border:1px solid var(--gold);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px}
 .winner{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.1;color:var(--gold-2);text-wrap:balance}
+.envelope.current{box-shadow:0 0 0 2px var(--gold-2)}
+.nomi{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px;font-size:17px}
+.speech{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 10px;font-size:15px}
+select{font:600 15px var(--body);background:var(--night-2);color:var(--cream);border:1px solid var(--line);border-radius:10px;padding:6px 8px;margin-left:6px}
 .tally div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;font-size:14px;margin-top:6px}
 .bar{grid-column:1 / -1;height:4px;background:var(--night);border-radius:9px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--gold)}

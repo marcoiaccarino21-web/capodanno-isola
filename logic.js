@@ -1,20 +1,44 @@
 // Dati fissi e funzioni pure (niente rete, niente pagina): testabili da sole.
 
 export const MENUS = [
-  { id: 'messico',  country: 'Messico',  course: 'Antipasto',   dish: 'Nachos con fagioli, guacamole e cheddar' },
-  { id: 'spagna',   country: 'Spagna',   course: 'Tapas',       dish: 'Tortilla de patatas e pan con tomate', heavy: true },
-  { id: 'giappone', country: 'Giappone', course: 'Primo',       dish: 'Yakisoba: noodles saltati con verdure, uovo e soia' },
-  { id: 'italia',   country: 'Italia',   course: 'Secondo',     dish: 'Polenta con funghi trifolati e fontina' },
-  { id: 'francia',  country: 'Francia',  course: 'Dolce',       dish: 'Crêpes con crema spalmabile o zucchero e limone' }
+  { id: 'antipasto-secondo', country: 'Messico e Italia', course: 'Antipasto e secondo', dish: 'Nachos con fagioli, guacamole e cheddar; polenta con funghi trifolati e fontina' },
+  { id: 'primo-dolce',       country: 'Giappone e Francia', course: 'Primo e dolce',     dish: 'Yakisoba con verdure, uovo e soia; crêpes con crema spalmabile o zucchero e limone' }
 ];
 
+export const DISHES = [
+  { id: 'nachos',   menu: 'antipasto-secondo', country: 'Messico',  label: 'Nachos con fagioli, guacamole e cheddar' },
+  { id: 'polenta',  menu: 'antipasto-secondo', country: 'Italia',   label: 'Polenta con funghi trifolati e fontina' },
+  { id: 'yakisoba', menu: 'primo-dolce',       country: 'Giappone', label: 'Yakisoba con verdure, uovo e soia' },
+  { id: 'crepes',   menu: 'primo-dolce',       country: 'Francia',  label: 'Crêpes' }
+];
+export const dishById = id => DISHES.find(d => d.id === id);
+
+// Spesa di squadra alla Metro: tutto quello che serve al menu della squadra, dosi per 11 (cena di 4 portate).
+export const SPESA = {
+  'antipasto-secondo': [
+    ['Tortilla chips', '3 buste da 200 g'], ['Fagioli neri o rossi', '2 lattine'], ['Jalapeños', '1 vasetto'],
+    ['Avocado maturi', '6'], ['Pomodori', '4'], ['Lime', '6'], ['Cipolla rossa', '1'], ['Coriandolo', '1 mazzo'],
+    ['Panna acida (o yogurt greco)', '250 g'], ['Cheddar grattugiato (o emmental)', '400 g'],
+    ['Funghi champignon (o misti)', '2 kg'], ['Aglio', '1 testa'], ['Prezzemolo', '1 mazzo'],
+    ['Fontina (o toma)', '700 g'], ['Farina per polenta, bramata o istantanea', '1 kg'], ['Burro', '250 g'],
+    ['Olio extravergine', '1 bottiglia da 0,5 l'], ['Sale grosso e fino, pepe', 'se mancano in casa']
+  ],
+  'primo-dolce': [
+    ['Noodles: udon o ramen secchi (o spaghetti)', '1 kg'], ['Cavolo cinese (o verza)', '800 g'], ['Carote', '4'],
+    ['Cipolla', '1'], ['Cipollotti', '1 mazzo'], ['Zenzero fresco', '1 radice'], ['Aglio', '1 testa'],
+    ['Uova', '12 (6 per lo yakisoba, 6 per le crêpes)'], ['Salsa di soia', '1 bottiglia'], ['Olio di sesamo', '1 bottiglia'],
+    ['Olio di semi', '1 l'], ['Farina 00', '1 kg'], ['Latte intero', '1 l'], ['Burro', '125 g'], ['Zucchero', '500 g'],
+    ['Crema spalmabile', '1 barattolo da 750 g'], ['Limoni', '3']
+  ]
+};
+
 export const CATEGORIES = [
-  { id: 'chef',            label: 'Migliori chef del giro del mondo', kind: 'team', note: 'Premio di squadra' },
-  { id: 'detective',       label: 'Miglior detective del giallo', kind: 'person' },
-  { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person' },
-  { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person' },
-  { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person' },
-  { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person' }
+  { id: 'piatto',          label: 'Piatto più buono della cena dei mondi', kind: 'dish', note: 'Il piatto che ti è piaciuto di più, quello di cui avresti fatto il bis. Puoi votare anche quello della tua squadra: vince la squadra che l’ha cucinato.' },
+  { id: 'detective',       label: 'Miglior detective del giallo', kind: 'auto', note: 'Non si vota: vince chi ha accusato per primo il colpevole' },
+  { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person', noNarrator: true, note: 'Chi è entrato di più nel personaggio durante il giallo: voce, battute, bugie credibili, colpi di scena. Conta come ha recitato, non se ha indovinato il colpevole.' },
+  { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person', note: 'Chi è stato al centro della scena più surreale di questi tre giorni: una frase, una figuraccia, un’idea folle. Quella che racconterete ancora l’anno prossimo.' },
+  { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person', note: 'Chi ha fatto più fatica a ingranare dopo le nottate: ultimo ad alzarsi, a colazione con gli occhi chiusi, ancora in pigiama a pranzo.' },
+  { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person', note: 'Chi ti ha sorpreso di più: un talento nascosto in cucina o nel giallo, un lato che non conoscevi, la persona che non ti aspettavi.' }
 ];
 
 export const PROGRAM = [
@@ -27,22 +51,24 @@ export const PROGRAM = [
     ['12:00', 'Arrivo a Isola, si sistemano letti e bagagli'],
     ['13:00', 'Pranzo al ristorante'],
     ['Pomeriggio', 'Libero fino alle 17:30, poi ogni squadra cucina il suo menu'],
-    ['20:00', 'Cena giro del mondo, cinque Paesi in cinque portate'],
+    ['20:00', 'Cena giro del mondo: due squadre, quattro Paesi in quattro portate'],
     ['Dopo', 'Giochi alcolici per chi vuole']
   ]},
   { day: 'Giovedì 31 dicembre', title: 'Delitto a Villa Ferraris', rows: [
     ['Mattina', 'Gita a Valenza (24 km, mezz’ora di macchina): centro, Duomo e vetrina della bottega orafa del MOD'],
     ['Pranzo', 'Da decidere'],
-    ['Pomeriggio', 'Lasagne al ragù vegetale tutti insieme, poi ognuno si mette il cartellino del suo personaggio'],
-    ['19:30', 'Aperitivo in piedi, con i cartellini a tracolla: Ottavio Ferraris accoglie gli ospiti e brinda'],
-    ['20:00', 'Ottavio viene trovato morto: comincia il giallo'],
-    ['20:15', 'Cena con delitto: antipasti, lasagne al ragù vegetale, cotechino e lenticchie, con un sopralluogo per la casa tra una portata e l’altra'],
-    ['23:10', 'Accuse dall’app, poi la soluzione'],
+    ['Pomeriggio', 'Ragù vegetale e tiramisù tutti insieme, poi ognuno si mette il cartellino del suo personaggio'],
+    ['19:00', 'Aperitivo in piedi, con i cartellini a tracolla: Ottavio Ferraris accoglie gli ospiti e brinda'],
+    ['19:30', 'Ottavio viene trovato morto: comincia il giallo'],
+    ['19:45', 'Giro 1 e primo sopralluogo; 20:15 a tavola con la pasta al ragù vegetale'],
+    ['21:00', 'Giro 2 e secondo sopralluogo; 21:25 a tavola con cotechino e lenticchie'],
+    ['22:05', 'Giro 3 e caccia alla Stella; 22:30 tiramisù e ragionamenti a tavola'],
+    ['22:50', 'Accuse dall’app, poi la soluzione'],
     ['Mezzanotte', 'Countdown e brindisi'],
     ['Dopo', 'Party game e giochi alcolici']
   ]},
   { day: 'Venerdì 1° gennaio', title: 'Nessuna sveglia, gran finale', rows: [
-    ['Mattina', 'Sveglia libera, colazione con caffè e panettone'],
+    ['Mattina', 'Sveglia libera, colazione'],
     ['13:00', 'Pranzo: trofie al pesto'],
     ['14:00', 'Gli Oscar del Capodanno: spoglio e premiazione'],
     ['14:45', 'Pulizie a squadre'],
@@ -66,8 +92,7 @@ export function shuffle(arr, rnd = Math.random) {
 export function draw(people, rnd = Math.random) {
   const n = Math.min(MENUS.length, people.length);
   if (n === 0) return [];
-  // Il menu più lungo da preparare (heavy) va per primo: se le persone non si dividono in parti uguali, prende lui la persona in più.
-  const menus = shuffle(MENUS, rnd).slice(0, n).sort((a, b) => (b.heavy ? 1 : 0) - (a.heavy ? 1 : 0));
+  const menus = shuffle(MENUS, rnd).slice(0, n);
   const ppl = shuffle(people, rnd);
   const teams = menus.map(m => ({ menu: m.id, members: [] }));
   ppl.forEach((p, i) => teams[i % n].members.push(p));
@@ -80,15 +105,29 @@ export const teamLabel = t => 'Squadra ' + (menuById(t.menu)?.country ?? t.menu)
 
 // Candidati per una categoria: mai se stessi, mai la propria squadra.
 export function nominees(cat, voter, state) {
+  if (cat.kind === 'dish') return DISHES.map(d => ({ value: d.id, label: d.label, sub: d.country }));
   if (cat.kind === 'team') {
     const mine = teamOf(state.teams, voter);
     return (state.teams || []).filter(t => t !== mine).map(t => ({ value: teamLabel(t), label: teamLabel(t), sub: t.members.join(', ') }));
   }
-  return (state.people || []).filter(p => p !== voter).map(p => ({ value: p, label: p }));
+  const narr = cat.noNarrator && state.giallo ? state.giallo.narrator : null; // il narratore non è in gara per l'interpretazione
+  return (state.people || []).filter(p => p !== voter && p !== narr).map(p => ({ value: p, label: p }));
 }
 
-// Categorie votabili: quella di squadra solo se ci sono almeno 2 squadre.
-export const activeCategories = state => CATEGORIES.filter(c => c.kind !== 'team' || (state.teams || []).length >= 2);
+// Categorie votabili: il piatto solo se le squadre sono state sorteggiate; il detective non si vota.
+export const spoglioCategories = state => CATEGORIES.filter(c => c.kind !== 'dish' || (state.teams || []).length >= 1);
+export const activeCategories = state => spoglioCategories(state).filter(c => c.kind !== 'auto');
+
+// Miglior detective: chi ha accusato per primo il colpevole (in ordine di orario dell'accusa).
+export function detectives(accuse, culprit) {
+  return (accuse || []).filter(a => a.suspect === culprit).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
+
+// Nomination: i primi tre per voti, più chi è a pari merito con il terzo.
+export function nominations(rows) {
+  const soglia = rows.length > 3 ? rows[2][1] : 0;
+  return rows.filter(r => r[1] >= soglia);
+}
 
 export function tally(ballots, catId) {
   const t = {};
@@ -104,3 +143,33 @@ export function assignCharacters(people, order, narrator, rnd = Math.random) {
   const ppl = shuffle(people.filter(p => p !== narrator), rnd).slice(0, order.length);
   return ppl.map((p, i) => ({ p, c: order[i] }));
 }
+
+// Ricette per 11 persone: ogni piatto è una delle 4 portate della cena. Un solo forno: lo usano solo i nachos.
+export const RICETTE = {
+  nachos: { portata: 'Antipasto', tempo: '30 minuti, forno a 200 °C', passi: [
+    'Guacamole: schiaccia 6 avocado con il succo di 3 lime, mezza cipolla rossa tritata finissima, 2 pomodori a dadini senza semi, coriandolo tritato e sale. Jalapeños tritati a piacere. Copri con la pellicola a contatto, se no annerisce.',
+    'Fagioli: scola e sciacqua le 2 lattine, scaldale in padella con un filo d’olio, uno spicchio d’aglio e sale. Schiacciane metà con la forchetta.',
+    'Accendi il forno a 200 °C. Su 2 teglie con carta forno fai uno strato di chips, fagioli a cucchiaiate, cheddar e qualche rondella di jalapeño, poi un secondo strato uguale.',
+    'Inforna 6-8 minuti, finché il formaggio fonde e non oltre: le chips bruciano in fretta. Infornale appena vi sedete a tavola.',
+    'Servi subito con sopra il guacamole, la panna acida, gli altri 2 pomodori a dadini e spicchi di lime.'] },
+  polenta: { portata: 'Secondo', tempo: '1 ora (20 minuti con l’istantanea)', passi: [
+    'Funghi: puliscili con un panno umido, senza metterli in acqua, e affettali. In 2 padelle larghe scalda olio con 2 spicchi d’aglio ciascuna.',
+    'Butta i funghi a fuoco vivo e girali poco: 10-12 minuti, finché l’acqua è evaporata e prendono colore. Sale, pepe e prezzemolo tritato alla fine. Togli l’aglio.',
+    'Polenta: in una pentola grande porta a bollore 4 litri d’acqua con 2 cucchiai di sale grosso (con l’istantanea segui le dosi della confezione). Versa la farina a pioggia sbattendo con la frusta, così non fa grumi.',
+    'Bramata: 40-50 minuti a fuoco basso, girando spesso col cucchiaio di legno. Istantanea: 8-10 minuti.',
+    'Spegni e manteca con 100 g di burro e metà della fontina a dadini.',
+    'Nel piatto: polenta, funghi sopra e l’altra fontina a dadini, che fonde col calore.'] },
+  yakisoba: { portata: 'Primo', tempo: '40 minuti', passi: [
+    'Prepara tutto prima: cavolo a striscioline, 4 carote a fiammifero, la cipolla a fette, i cipollotti a rondelle (la parte verde a parte), 3 cm di zenzero grattugiato, 3 spicchi d’aglio tritati.',
+    'Salsa: 10 cucchiai di soia, 2 di zucchero, 2 di olio di sesamo e 4 d’acqua.',
+    'Noodles: cuocili in acqua senza sale per il tempo della confezione meno un minuto, scolali, passali sotto l’acqua fredda e condiscili con un filo d’olio di semi, così non si attaccano.',
+    'Uova: sbatti 6 uova con un pizzico di sale, strapazzale in padella con un po’ d’olio di semi e tienile da parte.',
+    'In 2 padelle grandi (o wok) a fuoco alto con olio di semi: aglio, zenzero e cipolla per 1 minuto, poi le carote per 3, poi il cavolo per 3-4. Le verdure devono restare croccanti.',
+    'Aggiungi i noodles e la salsa e salta 2-3 minuti. Unisci le uova, il verde dei cipollotti e un giro d’olio di sesamo. Servi subito.'] },
+  crepes: { portata: 'Dolce', tempo: '1 ora, più 30 minuti di riposo dell’impasto', passi: [
+    'Impasto, almeno mezz’ora prima: sbatti 6 uova con 500 g di farina, poi aggiungi il litro di latte a filo sbattendo finché è liscio. Unisci 2 cucchiai di zucchero, un pizzico di sale e 50 g di burro fuso. In frigo per 30 minuti.',
+    'Scalda bene una padella antiaderente da 24 cm e ungila con un velo di burro, passato con la carta da cucina.',
+    'Versa un mestolino d’impasto e ruota subito la padella per coprire il fondo.',
+    'Dopo circa un minuto, quando i bordi si staccano, girala e cuoci 30 secondi dall’altra parte. Impilale su un piatto coperto: ne vengono circa 25.',
+    'Farcisci al momento: crema spalmabile, oppure zucchero e succo di limone. Piega in quattro e servi.'] }
+};
