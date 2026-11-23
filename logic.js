@@ -1,34 +1,33 @@
 // Dati fissi e funzioni pure (niente rete, niente pagina): testabili da sole.
 
 export const MENUS = [
-  { id: 'antipasto-secondo', country: 'Messico e Italia', course: 'Antipasto e secondo', dish: 'Nachos con fagioli, guacamole e cheddar; polenta con funghi trifolati e fontina' },
-  { id: 'primo-dolce',       country: 'Giappone e Francia', course: 'Primo e dolce',     dish: 'Yakisoba con verdure, uovo e soia; crêpes con crema spalmabile o zucchero e limone' }
+  { id: 'antipasto-primo', country: 'Spagna e Grecia', course: 'Antipasto e primo', dish: 'Pan con tomate e jamón; pastitsio (pasta al forno greca con ragù e besciamella)' },
+  { id: 'secondo-dolce',   country: 'India e Francia', course: 'Secondo e dolce',   dish: 'Pollo al curry con latte di cocco e riso basmati; crêpes con crema spalmabile o zucchero e limone' }
 ];
 
 export const DISHES = [
-  { id: 'nachos',   menu: 'antipasto-secondo', country: 'Messico',  label: 'Nachos con fagioli, guacamole e cheddar' },
-  { id: 'polenta',  menu: 'antipasto-secondo', country: 'Italia',   label: 'Polenta con funghi trifolati e fontina' },
-  { id: 'yakisoba', menu: 'primo-dolce',       country: 'Giappone', label: 'Yakisoba con verdure, uovo e soia' },
-  { id: 'crepes',   menu: 'primo-dolce',       country: 'Francia',  label: 'Crêpes' }
+  { id: 'pancontomate', menu: 'antipasto-primo', country: 'Spagna', label: 'Pan con tomate e jamón' },
+  { id: 'pastitsio',    menu: 'antipasto-primo', country: 'Grecia', label: 'Pastitsio' },
+  { id: 'curry',        menu: 'secondo-dolce',   country: 'India',  label: 'Pollo al curry con riso basmati' },
+  { id: 'crepes',       menu: 'secondo-dolce',   country: 'Francia', label: 'Crêpes' }
 ];
 export const dishById = id => DISHES.find(d => d.id === id);
 
 // Spesa di squadra alla Metro: tutto quello che serve al menu della squadra, dosi per 8 (cena di 4 portate).
 export const SPESA = {
-  'antipasto-secondo': [
-    ['Tortilla chips', '2 buste da 200 g'], ['Fagioli neri o rossi', '1 lattina grande (o 2 piccole)'], ['Jalapeños', '1 vasetto'],
-    ['Avocado maturi', '5'], ['Pomodori', '3'], ['Lime', '4'], ['Cipolla rossa', '1'], ['Coriandolo', '1 mazzo'],
-    ['Panna acida (o yogurt greco)', '200 g'], ['Cheddar grattugiato (o emmental)', '250 g'],
-    ['Funghi champignon (o misti)', '1,3 kg'], ['Aglio', '1 testa'], ['Prezzemolo', '1 mazzo'],
-    ['Fontina (o toma)', '500 g'], ['Farina per polenta, bramata o istantanea', '700 g'], ['Burro', '250 g'],
+  'antipasto-primo': [
+    ['Pane casereccio (o 2 baguette)', '1 kg'], ['Pomodori ramati ben maturi', '6'], ['Prosciutto crudo (serrano se c’è)', '250 g'],
+    ['Pasta lunga e grossa: bucatini, ziti o penne', '600 g'], ['Carne macinata mista', '700 g'], ['Cipolle', '2'], ['Aglio', '1 testa'],
+    ['Passata di pomodoro', '500 g'], ['Concentrato di pomodoro', '1 tubetto'], ['Cannella in polvere', '1 barattolino'], ['Noce moscata', '1 barattolino'],
+    ['Latte intero', '1 l'], ['Burro', '150 g'], ['Farina 00', '500 g'], ['Uova', '3'], ['Grana o pecorino grattugiato', '200 g'],
     ['Olio extravergine', '1 bottiglia da 0,5 l'], ['Sale grosso e fino, pepe', 'se mancano in casa']
   ],
-  'primo-dolce': [
-    ['Noodles: udon o ramen secchi (o spaghetti)', '700 g'], ['Cavolo cinese (o verza)', '500 g'], ['Carote', '3'],
-    ['Cipolla', '1'], ['Cipollotti', '1 mazzo'], ['Zenzero fresco', '1 radice'], ['Aglio', '1 testa'],
-    ['Uova', '8 (4 per lo yakisoba, 4 per le crêpes)'], ['Salsa di soia', '1 bottiglia'], ['Olio di sesamo', '1 bottiglia'],
-    ['Olio di semi', '1 l'], ['Farina 00', '1 kg'], ['Latte intero', '1 l'], ['Burro', '125 g'], ['Zucchero', '500 g'],
-    ['Crema spalmabile', '1 barattolo da 400 g'], ['Limoni', '2']
+  'secondo-dolce': [
+    ['Pollo: sovracoscia o petto a pezzi', '1,2 kg'], ['Riso basmati', '500 g'], ['Latte di cocco', '2 lattine da 400 ml'],
+    ['Pomodori pelati', '1 lattina da 400 g'], ['Curry in polvere (o pasta di curry)', '1 barattolino'], ['Curcuma', '1 barattolino, facoltativa'],
+    ['Cipolle', '2'], ['Aglio', '1 testa'], ['Zenzero fresco', '1 radice'], ['Coriandolo', '1 mazzo'], ['Yogurt bianco', '250 g'],
+    ['Olio di semi', '1 l'], ['Uova', '4'], ['Farina 00', '500 g'], ['Latte intero', '1 l'], ['Burro', '125 g'], ['Zucchero', '500 g'],
+    ['Crema spalmabile', '1 barattolo da 400 g'], ['Limoni', '3']
   ]
 };
 
@@ -150,28 +149,26 @@ export function assignCharacters(people, order, narrator, rnd = Math.random) {
   return [...fissi, ...altri.map((p, i) => ({ p, c: liberi[i] }))];
 }
 
-// Ricette per 8 persone: ogni piatto è una delle 4 portate della cena. Un solo forno: lo usano solo i nachos.
+// Ricette per 8 persone: ogni piatto è una delle 4 portate della cena. Un solo forno: lo usa solo il pastitsio.
 export const RICETTE = {
-  nachos: { portata: 'Antipasto', tempo: '30 minuti, forno a 200 °C', passi: [
-    'Guacamole: schiaccia 5 avocado con il succo di 2 lime, mezza cipolla rossa tritata finissima, 2 pomodori a dadini senza semi, coriandolo tritato e sale. Jalapeños tritati a piacere. Copri con la pellicola a contatto, se no annerisce.',
-    'Fagioli: scola e sciacqua i fagioli, scaldale in padella con un filo d’olio, uno spicchio d’aglio e sale. Schiacciane metà con la forchetta.',
-    'Accendi il forno a 200 °C. Su 2 teglie con carta forno fai uno strato di chips, fagioli a cucchiaiate, cheddar e qualche rondella di jalapeño, poi un secondo strato uguale.',
-    'Inforna 6-8 minuti, finché il formaggio fonde e non oltre: le chips bruciano in fretta. Infornale appena vi sedete a tavola.',
-    'Servi subito con sopra il guacamole, la panna acida, l’altro pomodoro a dadini e spicchi di lime.'] },
-  polenta: { portata: 'Secondo', tempo: '1 ora (20 minuti con l’istantanea)', passi: [
-    'Funghi: puliscili con un panno umido, senza metterli in acqua, e affettali. In 2 padelle larghe scalda olio con 2 spicchi d’aglio ciascuna.',
-    'Butta i funghi a fuoco vivo e girali poco: 10-12 minuti, finché l’acqua è evaporata e prendono colore. Sale, pepe e prezzemolo tritato alla fine. Togli l’aglio.',
-    'Polenta: in una pentola grande porta a bollore 2,8 litri d’acqua con 1 cucchiaio e mezzo di sale grosso (con l’istantanea segui le dosi della confezione). Versa la farina a pioggia sbattendo con la frusta, così non fa grumi.',
-    'Bramata: 40-50 minuti a fuoco basso, girando spesso col cucchiaio di legno. Istantanea: 8-10 minuti.',
-    'Spegni e manteca con 70 g di burro e metà della fontina a dadini.',
-    'Nel piatto: polenta, funghi sopra e l’altra fontina a dadini, che fonde col calore.'] },
-  yakisoba: { portata: 'Primo', tempo: '40 minuti', passi: [
-    'Prepara tutto prima: cavolo a striscioline, 3 carote a fiammifero, la cipolla a fette, i cipollotti a rondelle (la parte verde a parte), 2 cm di zenzero grattugiato, 2 spicchi d’aglio tritati.',
-    'Salsa: 7 cucchiai di soia, 1 e mezzo di zucchero, 1 e mezzo di olio di sesamo e 3 d’acqua.',
-    'Noodles: cuocili in acqua senza sale per il tempo della confezione meno un minuto, scolali, passali sotto l’acqua fredda e condiscili con un filo d’olio di semi, così non si attaccano.',
-    'Uova: sbatti 4 uova con un pizzico di sale, strapazzale in padella con un po’ d’olio di semi e tienile da parte.',
-    'In 2 padelle grandi (o wok) a fuoco alto con olio di semi: aglio, zenzero e cipolla per 1 minuto, poi le carote per 3, poi il cavolo per 3-4. Le verdure devono restare croccanti.',
-    'Aggiungi i noodles e la salsa e salta 2-3 minuti. Unisci le uova, il verde dei cipollotti e un giro d’olio di sesamo. Servi subito.'] },
+  pancontomate: { portata: 'Antipasto', tempo: '20 minuti', passi: [
+    'Taglia il pane a fette di un dito e tostale: sulla piastra, nel tostapane o nella friggitrice ad aria (200 °C, 4-5 minuti). Non usare il forno, serve al pastitsio.',
+    'Strofina ogni fetta ancora calda con mezzo spicchio d’aglio crudo.',
+    'Taglia i pomodori a metà e strofinali sul pane schiacciandoli, finché resta solo la buccia in mano. In alternativa grattugiali e spalma la polpa col cucchiaio.',
+    'Sale grosso, un bel giro d’olio extravergine e sopra una fetta di crudo. Prepararli quando gli altri si siedono, se no il pane si ammolla.'] },
+  pastitsio: { portata: 'Primo', tempo: '2 ore, di cui 45 minuti in forno a 180 °C', passi: [
+    'Ragù: in una pentola larga soffriggi 2 cipolle tritate e 2 spicchi d’aglio nell’olio. Aggiungi i 700 g di carne e rosola a fuoco alto finché perde l’acqua.',
+    'Unisci la passata, 1 cucchiaio di concentrato, 1 cucchiaino scarso di cannella, un bicchiere d’acqua, sale e pepe. Cuoci 40 minuti a fuoco basso, deve restare denso.',
+    'Besciamella: sciogli 100 g di burro, aggiungi 100 g di farina e mescola 1 minuto. Versa 1 litro di latte caldo a filo con la frusta e cuoci finché si addensa. Fuori dal fuoco: noce moscata, sale, metà del formaggio e, quando è tiepida, 2 uova sbattute.',
+    'Pasta: cuocila molto al dente (metà del tempo della confezione), scolala e condiscila con 1 uovo sbattuto, una noce di burro e un pugno di formaggio.',
+    'In una teglia grande imburrata (circa 30x40, o due più piccole): metà pasta, tutto il ragù, l’altra metà della pasta, sopra la besciamella e il formaggio rimasto.',
+    'Forno a 180 °C per 40-45 minuti, finché la crosta è dorata. Fallo riposare 15 minuti prima di tagliarlo a quadrati: si può infornare mentre si mangia l’antipasto.'] },
+  curry: { portata: 'Secondo', tempo: '1 ora', passi: [
+    'Marinata, se avete tempo anche al mattino: pollo a pezzi con 4 cucchiai di yogurt, 1 cucchiaio di curry e sale. Almeno 20 minuti in frigo.',
+    'In una pentola larga con olio di semi rosola 2 cipolle tritate per 8-10 minuti, finché sono dorate. Aggiungi 3 spicchi d’aglio e 3 cm di zenzero grattugiati e 2 cucchiai di curry (più un cucchiaino di curcuma): 1 minuto, mescolando.',
+    'Unisci il pollo e fallo colorare 5 minuti. Poi i pelati schiacciati e le 2 lattine di latte di cocco. Sale e 20-25 minuti a fuoco basso col coperchio socchiuso.',
+    'Riso: sciacqua 500 g di basmati finché l’acqua è chiara, cuocilo con 750 ml d’acqua e sale a fuoco minimo col coperchio, 12 minuti, poi 5 di riposo senza aprire.',
+    'Assaggia il curry, aggiusta di sale e succo di limone e servi sul riso con coriandolo tritato e un cucchiaio di yogurt.'] },
   crepes: { portata: 'Dolce', tempo: '1 ora, più 30 minuti di riposo dell’impasto', passi: [
     'Impasto, almeno mezz’ora prima: sbatti 4 uova con 350 g di farina, poi aggiungi 700 ml di latte a filo sbattendo finché è liscio. Unisci 2 cucchiai di zucchero, un pizzico di sale e 35 g di burro fuso. In frigo per 30 minuti.',
     'Scalda bene una padella antiaderente da 24 cm e ungila con un velo di burro, passato con la carta da cucina.',
