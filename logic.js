@@ -13,22 +13,22 @@ export const DISHES = [
 ];
 export const dishById = id => DISHES.find(d => d.id === id);
 
-// Spesa di squadra alla Metro: tutto quello che serve al menu della squadra, dosi per 12 (cena di 4 portate).
+// Spesa di squadra alla Metro: tutto quello che serve al menu della squadra, dosi per 8 (cena di 4 portate).
 export const SPESA = {
   'antipasto-secondo': [
-    ['Tortilla chips', '3 buste da 200 g'], ['Fagioli neri o rossi', '2 lattine'], ['Jalapeños', '1 vasetto'],
-    ['Avocado maturi', '7'], ['Pomodori', '4'], ['Lime', '6'], ['Cipolla rossa', '1'], ['Coriandolo', '1 mazzo'],
-    ['Panna acida (o yogurt greco)', '250 g'], ['Cheddar grattugiato (o emmental)', '400 g'],
-    ['Funghi champignon (o misti)', '2 kg'], ['Aglio', '1 testa'], ['Prezzemolo', '1 mazzo'],
-    ['Fontina (o toma)', '750 g'], ['Farina per polenta, bramata o istantanea', '1 kg'], ['Burro', '250 g'],
+    ['Tortilla chips', '2 buste da 200 g'], ['Fagioli neri o rossi', '1 lattina grande (o 2 piccole)'], ['Jalapeños', '1 vasetto'],
+    ['Avocado maturi', '5'], ['Pomodori', '3'], ['Lime', '4'], ['Cipolla rossa', '1'], ['Coriandolo', '1 mazzo'],
+    ['Panna acida (o yogurt greco)', '200 g'], ['Cheddar grattugiato (o emmental)', '250 g'],
+    ['Funghi champignon (o misti)', '1,3 kg'], ['Aglio', '1 testa'], ['Prezzemolo', '1 mazzo'],
+    ['Fontina (o toma)', '500 g'], ['Farina per polenta, bramata o istantanea', '700 g'], ['Burro', '250 g'],
     ['Olio extravergine', '1 bottiglia da 0,5 l'], ['Sale grosso e fino, pepe', 'se mancano in casa']
   ],
   'primo-dolce': [
-    ['Noodles: udon o ramen secchi (o spaghetti)', '1 kg'], ['Cavolo cinese (o verza)', '800 g'], ['Carote', '4'],
+    ['Noodles: udon o ramen secchi (o spaghetti)', '700 g'], ['Cavolo cinese (o verza)', '500 g'], ['Carote', '3'],
     ['Cipolla', '1'], ['Cipollotti', '1 mazzo'], ['Zenzero fresco', '1 radice'], ['Aglio', '1 testa'],
-    ['Uova', '12 (6 per lo yakisoba, 6 per le crêpes)'], ['Salsa di soia', '1 bottiglia'], ['Olio di sesamo', '1 bottiglia'],
+    ['Uova', '8 (4 per lo yakisoba, 4 per le crêpes)'], ['Salsa di soia', '1 bottiglia'], ['Olio di sesamo', '1 bottiglia'],
     ['Olio di semi', '1 l'], ['Farina 00', '1 kg'], ['Latte intero', '1 l'], ['Burro', '125 g'], ['Zucchero', '500 g'],
-    ['Crema spalmabile', '1 barattolo da 750 g'], ['Limoni', '3']
+    ['Crema spalmabile', '1 barattolo da 400 g'], ['Limoni', '2']
   ]
 };
 
@@ -57,10 +57,10 @@ export const PROGRAM = [
   { day: 'Giovedì 31 dicembre', title: 'Delitto a Villa Ferraris', rows: [
     ['Mattina', 'Gita a Valenza (24 km, mezz’ora di macchina): centro, Duomo e vetrina della bottega orafa del MOD'],
     ['Pranzo', 'Da decidere'],
-    ['Pomeriggio', 'Ragù vegetale e tiramisù tutti insieme, poi ognuno si mette il cartellino del suo personaggio'],
+    ['Pomeriggio', 'Ragù di carne e tiramisù tutti insieme, poi ognuno si mette il cartellino del suo personaggio'],
     ['19:00', 'Aperitivo in piedi, con i cartellini a tracolla: Ottavio Ferraris accoglie gli ospiti e brinda'],
     ['19:30', 'Ottavio viene trovato morto: comincia il giallo'],
-    ['19:45', 'Giro 1 e primo sopralluogo; 20:15 a tavola con la pasta al ragù vegetale'],
+    ['19:45', 'Giro 1 e primo sopralluogo; 20:15 a tavola con la pasta al ragù'],
     ['21:00', 'Giro 2 e secondo sopralluogo; 21:25 a tavola con cotechino e lenticchie'],
     ['22:05', 'Giro 3 e caccia alla Stella; 22:30 tiramisù e ragionamenti a tavola'],
     ['22:50', 'Accuse dall’app, poi la soluzione'],
@@ -139,37 +139,42 @@ export function tally(ballots, catId) {
 
 // Personaggi del giallo: si assegnano nell'ordine di importanza per la trama,
 // così con meno di 13 persone restano comunque tutti gli indizi decisivi.
+// Cast deciso da Marco (23/11): chi è in questa lista riceve sempre quel personaggio; gli altri a caso.
+export const CAST = { Ugi: 'moretti', Marco: 'cantu', Isa: 'bellini', Lollot: 'cugino', Saolo: 'erede', Melvin: 'dellavalle', Clelia: 'bassi' };
 export function assignCharacters(people, order, narrator, rnd = Math.random) {
-  const ppl = shuffle(people.filter(p => p !== narrator), rnd).slice(0, order.length);
-  return ppl.map((p, i) => ({ p, c: order[i] }));
+  const ppl = people.filter(p => p !== narrator);
+  const fissi = ppl.filter(p => CAST[p] && order.includes(CAST[p])).map(p => ({ p, c: CAST[p] }));
+  const liberi = order.filter(c => !fissi.some(a => a.c === c));
+  const altri = shuffle(ppl.filter(p => !fissi.some(a => a.p === p)), rnd).slice(0, liberi.length);
+  return [...fissi, ...altri.map((p, i) => ({ p, c: liberi[i] }))];
 }
 
-// Ricette per 12 persone: ogni piatto è una delle 4 portate della cena. Un solo forno: lo usano solo i nachos.
+// Ricette per 8 persone: ogni piatto è una delle 4 portate della cena. Un solo forno: lo usano solo i nachos.
 export const RICETTE = {
   nachos: { portata: 'Antipasto', tempo: '30 minuti, forno a 200 °C', passi: [
-    'Guacamole: schiaccia 7 avocado con il succo di 3 lime, mezza cipolla rossa tritata finissima, 2 pomodori a dadini senza semi, coriandolo tritato e sale. Jalapeños tritati a piacere. Copri con la pellicola a contatto, se no annerisce.',
-    'Fagioli: scola e sciacqua le 2 lattine, scaldale in padella con un filo d’olio, uno spicchio d’aglio e sale. Schiacciane metà con la forchetta.',
+    'Guacamole: schiaccia 5 avocado con il succo di 2 lime, mezza cipolla rossa tritata finissima, 2 pomodori a dadini senza semi, coriandolo tritato e sale. Jalapeños tritati a piacere. Copri con la pellicola a contatto, se no annerisce.',
+    'Fagioli: scola e sciacqua i fagioli, scaldale in padella con un filo d’olio, uno spicchio d’aglio e sale. Schiacciane metà con la forchetta.',
     'Accendi il forno a 200 °C. Su 2 teglie con carta forno fai uno strato di chips, fagioli a cucchiaiate, cheddar e qualche rondella di jalapeño, poi un secondo strato uguale.',
     'Inforna 6-8 minuti, finché il formaggio fonde e non oltre: le chips bruciano in fretta. Infornale appena vi sedete a tavola.',
-    'Servi subito con sopra il guacamole, la panna acida, gli altri 2 pomodori a dadini e spicchi di lime.'] },
+    'Servi subito con sopra il guacamole, la panna acida, l’altro pomodoro a dadini e spicchi di lime.'] },
   polenta: { portata: 'Secondo', tempo: '1 ora (20 minuti con l’istantanea)', passi: [
     'Funghi: puliscili con un panno umido, senza metterli in acqua, e affettali. In 2 padelle larghe scalda olio con 2 spicchi d’aglio ciascuna.',
     'Butta i funghi a fuoco vivo e girali poco: 10-12 minuti, finché l’acqua è evaporata e prendono colore. Sale, pepe e prezzemolo tritato alla fine. Togli l’aglio.',
-    'Polenta: in una pentola grande porta a bollore 4 litri d’acqua con 2 cucchiai di sale grosso (con l’istantanea segui le dosi della confezione). Versa la farina a pioggia sbattendo con la frusta, così non fa grumi.',
+    'Polenta: in una pentola grande porta a bollore 2,8 litri d’acqua con 1 cucchiaio e mezzo di sale grosso (con l’istantanea segui le dosi della confezione). Versa la farina a pioggia sbattendo con la frusta, così non fa grumi.',
     'Bramata: 40-50 minuti a fuoco basso, girando spesso col cucchiaio di legno. Istantanea: 8-10 minuti.',
-    'Spegni e manteca con 100 g di burro e metà della fontina a dadini.',
+    'Spegni e manteca con 70 g di burro e metà della fontina a dadini.',
     'Nel piatto: polenta, funghi sopra e l’altra fontina a dadini, che fonde col calore.'] },
   yakisoba: { portata: 'Primo', tempo: '40 minuti', passi: [
-    'Prepara tutto prima: cavolo a striscioline, 4 carote a fiammifero, la cipolla a fette, i cipollotti a rondelle (la parte verde a parte), 3 cm di zenzero grattugiato, 3 spicchi d’aglio tritati.',
-    'Salsa: 10 cucchiai di soia, 2 di zucchero, 2 di olio di sesamo e 4 d’acqua.',
+    'Prepara tutto prima: cavolo a striscioline, 3 carote a fiammifero, la cipolla a fette, i cipollotti a rondelle (la parte verde a parte), 2 cm di zenzero grattugiato, 2 spicchi d’aglio tritati.',
+    'Salsa: 7 cucchiai di soia, 1 e mezzo di zucchero, 1 e mezzo di olio di sesamo e 3 d’acqua.',
     'Noodles: cuocili in acqua senza sale per il tempo della confezione meno un minuto, scolali, passali sotto l’acqua fredda e condiscili con un filo d’olio di semi, così non si attaccano.',
-    'Uova: sbatti 6 uova con un pizzico di sale, strapazzale in padella con un po’ d’olio di semi e tienile da parte.',
+    'Uova: sbatti 4 uova con un pizzico di sale, strapazzale in padella con un po’ d’olio di semi e tienile da parte.',
     'In 2 padelle grandi (o wok) a fuoco alto con olio di semi: aglio, zenzero e cipolla per 1 minuto, poi le carote per 3, poi il cavolo per 3-4. Le verdure devono restare croccanti.',
     'Aggiungi i noodles e la salsa e salta 2-3 minuti. Unisci le uova, il verde dei cipollotti e un giro d’olio di sesamo. Servi subito.'] },
   crepes: { portata: 'Dolce', tempo: '1 ora, più 30 minuti di riposo dell’impasto', passi: [
-    'Impasto, almeno mezz’ora prima: sbatti 6 uova con 500 g di farina, poi aggiungi il litro di latte a filo sbattendo finché è liscio. Unisci 2 cucchiai di zucchero, un pizzico di sale e 50 g di burro fuso. In frigo per 30 minuti.',
+    'Impasto, almeno mezz’ora prima: sbatti 4 uova con 350 g di farina, poi aggiungi 700 ml di latte a filo sbattendo finché è liscio. Unisci 2 cucchiai di zucchero, un pizzico di sale e 35 g di burro fuso. In frigo per 30 minuti.',
     'Scalda bene una padella antiaderente da 24 cm e ungila con un velo di burro, passato con la carta da cucina.',
     'Versa un mestolino d’impasto e ruota subito la padella per coprire il fondo.',
-    'Dopo circa un minuto, quando i bordi si staccano, girala e cuoci 30 secondi dall’altra parte. Impilale su un piatto coperto: ne vengono circa 25.',
+    'Dopo circa un minuto, quando i bordi si staccano, girala e cuoci 30 secondi dall’altra parte. Impilale su un piatto coperto: ne vengono circa 17.',
     'Farcisci al momento: crema spalmabile, oppure zucchero e succo di limone. Piega in quattro e servi.'] }
 };

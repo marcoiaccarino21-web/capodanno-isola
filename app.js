@@ -87,7 +87,7 @@ function boxSpesa(menu) {
   let fatti = []; try { fatti = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) {}
   const toggle = i => { fatti = fatti.includes(i) ? fatti.filter(x => x !== i) : [...fatti, i]; try { localStorage.setItem(key, JSON.stringify(fatti)); } catch (e) {} render(); };
   return h('div', { class: 'box' }, h('h3', {}, 'La spesa della tua squadra'),
-    h('p', { class: 'small' }, `Tutto quello che serve al vostro menu, dosi per 12. ${fatti.length} su ${lista.length} nel carrello. Poi tutti alla cassa insieme.`),
+    h('p', { class: 'small' }, `Tutto quello che serve al vostro menu, dosi per 8. ${fatti.length} su ${lista.length} nel carrello. Poi tutti alla cassa insieme.`),
     h('div', { class: 'spesa' }, lista.map(([cosa, qt], i) => h('button', { class: 'nominee', 'aria-pressed': fatti.includes(i) ? 'true' : 'false', onclick: () => toggle(i) },
       h('span', {}, (fatti.includes(i) ? '✓ ' : '') + cosa), h('small', {}, qt)))));
 }
@@ -113,7 +113,7 @@ function screenSquadra() {
         h('div', { class: 'item' }, h('b', {}, '20:00'), h('span', {}, 'A tavola: si servono le portate')))));
     out.push(boxSpesa(t.menu));
     for (const d of DISHES.filter(x => x.menu === t.menu)) { const r = RICETTE[d.id]; if (!r) continue;
-      out.push(h('details', { class: 'box ricetta' }, h('summary', {}, h('h3', {}, 'Ricetta · ' + r.portata + ' · ' + d.country), h('strong', {}, d.label), h('span', { class: 'small' }, 'Per 12 · ' + r.tempo)),
+      out.push(h('details', { class: 'box ricetta' }, h('summary', {}, h('h3', {}, 'Ricetta · ' + r.portata + ' · ' + d.country), h('strong', {}, d.label), h('span', { class: 'small' }, 'Per 8 · ' + r.tempo)),
         h('ol', {}, r.passi.map(x => h('li', {}, x))))); }
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non sei in nessuna squadra: chiedi all’organizzatore di rifare il sorteggio.')));
@@ -246,7 +246,7 @@ function screenSpoglio(cats) {
 }
 
 /* ---------- giallo ---------- */
-const charById = id => GIALLO.characters.find(c => c.id === id);
+function charById(id) { return GIALLO.characters.find(c => c.id === id); }
 // nome, ruolo e ritratto del personaggio secondo il sesso di chi lo interpreta
 function pers(a) {
   const c = charById(a.c), s = state.sesso[a.p], n = NOMI[a.c];
@@ -315,6 +315,11 @@ function screenGiallo() {
       const sbloccati = c.clues.slice(0, g.round);
       if (sbloccati.length) out.push(h('div', { class: 'box' }, h('h3', {}, sbloccati.length === 1 ? 'Il tuo indizio' : 'I tuoi indizi'),
         h('div', { class: 'list' }, sbloccati.map((t, i) => h('div', { class: 'item' + (i === sbloccati.length - 1 ? ' reveal' : '') }, h('b', {}, 'Giro ' + (i + 1)), h('span', {}, genere(t, x.sesso, c.id)))))));
+      const tel = telefonateDi(c.id);
+      if (tel.length) out.push(h('div', { class: 'box' }, h('h3', {}, tel.length === 1 ? 'La telefonata che hai ricevuto' : 'Le telefonate che hai ricevuto'),
+        ...tel.map(t => h('div', { style: 'display:flex;flex-direction:column;gap:6px' }, h('strong', {}, t.from + ' · ' + t.role),
+          h('audio', { controls: true, preload: 'none', src: './telefonate/' + t.id + '.mp3', style: 'width:100%' }),
+          h('p', { class: 'small' }, '«' + genere(t.text, x.sesso, c.id) + '»')))));
     }
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
@@ -385,6 +390,12 @@ function screenNarratore() {
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
     h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Le telefonate dei personaggi assenti'),
+    h('p', { class: 'small' }, 'Partono da sole sul telefono di chi le riceve quando sblocchi il giro. Se quel giocatore non c’è, falla sentire tu da qui.'),
+    h('div', { class: 'list' }, (GIALLO.calls || []).map(t => { const a = g.assign.find(x => x.c === t.to);
+      return h('div', { class: 'item' }, h('b', {}, 'Giro ' + t.round), h('span', { style: 'display:flex;flex-direction:column;gap:6px' },
+        h('strong', {}, t.from + ' chiama ' + (a ? a.p + ' (' + pers(a).role.toLowerCase() + ')' : charById(t.to).role.toLowerCase() + ': non assegnato, leggila tu')),
+        h('audio', { controls: true, preload: 'none', src: './telefonate/' + t.id + '.mp3', style: 'width:100%' }), h('span', { class: 'small' }, '«' + t.text + '»'))); }))));
   out.push(boxCartina());
   out.push(boxStanze());
   const ca = g.assign.find(a => a.c === GIALLO.culprit); const who = ca?.p;
@@ -749,6 +760,7 @@ function render() {
   nav.hidden = !configured;
   avanzaGioco();
   showCall();
+  showTelefonata();
   showMissione();
   showTavola();
   showAllarme();
@@ -809,6 +821,40 @@ function showAllarme() {
       h('button', { class: 'btn big', onclick: ok }, ugi ? 'Ok' : 'Corro')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([500, 150, 500, 150, 500]); } catch {}
+}
+// telefonate dei personaggi che non sono alla festa: arrivano quando si sblocca il loro giro
+function telefonateDi(id) { return (GIALLO.calls || []).filter(t => t.to === id && t.round <= (state.giallo.round || 0)); }
+var squillo = null;
+function suona(on) {
+  try {
+    if (!on) { squillo?.stop(); squillo = null; return; }
+    if (squillo) return;
+    const ac = new (window.AudioContext || window.webkitAudioContext)(); const gn = ac.createGain(); gn.gain.value = 0; gn.connect(ac.destination);
+    [425, 450].forEach(f => { const o = ac.createOscillator(); o.frequency.value = f; o.connect(gn); o.start(); });
+    const t0 = ac.currentTime; for (let i = 0; i < 30; i++) { gn.gain.setValueAtTime(.12, t0 + i * 3); gn.gain.setValueAtTime(0, t0 + i * 3 + 1); }
+    squillo = { stop: () => ac.close() };
+  } catch {}
+}
+function showTelefonata() {
+  const g = state.giallo; const old = document.getElementById('telefonata');
+  const a = g && g.assign.find(x => x.p === me); const c = a && GIALLO.characters.find(x => x.id === a.c);
+  const k = x => 'tel:' + x.id + ':' + (g.call ? g.call.at : ''); const t = c && !g.solved && telefonateDi(c.id).find(x => load(k(x)) !== 'ok');
+  if (!t || document.getElementById('chiamata') || document.getElementById('allarme')) { if (old && !old.dataset.aperta) { old.remove(); suona(false); } return; }
+  if (old) return;
+  const x = pers(a);
+  const chiudi = () => { save(k(t), 'ok'); suona(false); document.getElementById('telefonata')?.remove(); render(); };
+  const testo = h('div', { style: 'display:flex;flex-direction:column;gap:14px' },
+    h('button', { class: 'btn big', onclick: ev => { suona(false); const el = document.getElementById('telefonata'); el.dataset.aperta = '1';
+      const au = new Audio('./telefonate/' + t.id + '.mp3'); au.play().catch(() => {});
+      ev.target.replaceWith(h('p', { style: 'font-size:17px;line-height:1.5;text-align:left' }, '«' + genere(t.text, x.sesso, c.id) + '»'),
+        h('button', { class: 'btn big', onclick: () => { au.pause(); chiudi(); } }, 'Riaggancia')); } }, 'Rispondi'));
+  const el = h('div', { id: 'telefonata', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:48;background:#171C36;display:flex;align-items:center;justify-content:center;overflow:auto;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:16px' },
+      h('p', { class: 'eyebrow' }, 'Solo per te · chiamata in arrivo'),
+      h('h1', {}, t.from.split(' ').slice(0, -1).join(' ') + ' ', h('em', {}, t.from.split(' ').slice(-1)[0])),
+      h('p', { class: 'sub' }, t.role + '. Rispondi: poi decidi tu se farla sentire agli altri.'), testo));
+  document.body.append(el); suona(true);
+  try { navigator.vibrate && navigator.vibrate([800, 400, 800, 400, 800, 400, 800]); } catch {}
 }
 function showCall() {
   const g = state.giallo; const old = document.getElementById('chiamata');
