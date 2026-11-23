@@ -3,7 +3,7 @@ import { getFirestore, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, DISHES, SPESA, RICETTE, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, nominations, assignCharacters } from './logic.js';
 import { GIALLO, femminile } from './giallo.js';
-import { classifica, puntiImpostore, puntiLupus, puntiGiallo, PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG } from './giochi.js';
+import { classifica, puntiImpostore, puntiLupus, puntiGiallo, PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG, nuovoNonHoMai, fraseNonHoMai, nuovoTaboo, spiega, cartaTaboo, puntiTaboo } from './giochi.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
 const HOME = SOLO ? 'giallo' : 'squadra';
@@ -191,7 +191,7 @@ let ticker = null;
 function tick(on) {
   if (on && !ticker) ticker = setInterval(() => {
     const els = document.querySelectorAll('[data-end]');
-    if (!els.length || tab !== 'oscar') return tick(false);
+    if (!els.length || (tab !== 'oscar' && tab !== 'giochi')) return tick(false);
     for (const el of els) {
       const left = +el.dataset.end - Date.now();
       if (left <= 0) return render();
@@ -586,7 +586,12 @@ function avanzaGioco() {
   const g = state.gioco; if (!g) return;
   if (g.tipo === 'impostore' && g.fase === 'svelato') segnaPunti('i' + g.id, 'Impostore', puntiImpostore(g));
   if (g.tipo === 'lupus' && g.fase === 'fine') segnaPunti('l' + g.id, 'Lupus', puntiLupus(g));
-  const k = g.id + ':' + g.fase + ':' + (g.turno || 0);
+  if (g.tipo === 'taboo' && g.fase === 'fine') segnaPunti('t' + g.id, 'Parole vietate', puntiTaboo(g));
+  // fine del tempo: chiude chi spiega; se il suo telefono dorme, chiunque dopo 4 secondi
+  if (g.tipo === 'taboo' && g.fase === 'turno' && g.turno && Date.now() > g.turno.fine + (spiega(g) === me ? 0 : 4000)) {
+    const kt = g.id + ':t:' + g.turno.fine; if (chiuso !== kt) { chiuso = kt; chiudiTurnoTaboo(g); } return;
+  }
+  const k = g.id + ':' + g.fase + ':' + (typeof g.turno === 'object' ? 0 : g.turno || 0);
   if (chiuso === k) return;
   if (g.tipo === 'lupus' && g.fase === 'notte' && notteCompleta(g)) { chiuso = k; setGioco(risolviNotte(g)); }
   else if (g.tipo === 'lupus' && g.fase === 'giorno' && giornoCompleto(g)) { chiuso = k; setGioco(risolviGiorno(g)); }
@@ -614,6 +619,8 @@ function screenGiochi() {
   if ((g && g.id) !== ultimoGioco) { ultimoGioco = g && g.id; cartaAperta = false; }
   if (g && g.tipo === 'impostore') return screenImpostore(g);
   if (g && g.tipo === 'lupus') return screenLupus(g);
+  if (g && g.tipo === 'nonhomai') return screenNonHoMai(g);
+  if (g && g.tipo === 'taboo') return screenTaboo(g);
   if (setup) return screenSetup();
   return [h('div', { class: 'box' }, h('h3', {}, 'Giochi'), h('h2', {}, 'A cosa giochiamo?'),
       h('p', { class: 'sub' }, 'Chiunque può far partire una partita: ognuno gioca dal suo telefono. Una partita alla volta.')),
@@ -621,10 +628,14 @@ function screenGiochi() {
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'L’impostore'), h('small', {}, 'Tutti hanno la stessa parola tranne l’impostore. A turno dite una parola collegata, poi votate chi bluffa. Da 3 giocatori.')),
     h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'lupus', sel: [...state.people], opz: { lupi: 0, veggente: true, guardia: true, medium: true } }; render(); } },
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Lupus in fabula'), h('small', {}, 'Lupi contro villaggio. Di notte i lupi sbranano, di giorno il villaggio vota chi giustiziare. L’app fa da narratore. Da 5 giocatori.')),
+    h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'taboo', sel: [...state.people], opz: { durata: 60, obiettivo: 20 } }; render(); } },
+      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Parole vietate'), h('small', {}, 'Due squadre, a tempo: fai indovinare la parola senza dire le 5 vietate. Chi spiega ha la carta sul telefono, gli avversari controllano. Da 4 giocatori.')),
+    h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'nonhomai', sel: [...state.people], opz: { mazzo: 'soft' } }; render(); } },
+      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Non ho mai'), h('small', {}, 'L’app pesca una frase, chi l’ha fatto beve e confessa sul telefono. Versione tranquilla o piccante.')),
     ...boxTorneo()];
 }
 var punti = null; // { gioco, chi: [], pt }
-const GIOCHI_TORNEO = ['Beer pong', 'Flip cup', 'Ring of fire', 'Codenames', 'Taboo', 'Dixit', 'Altro'];
+const GIOCHI_TORNEO = ['Beer pong', 'Flip cup', 'Ring of fire', 'Codenames', 'Dixit', 'Altro'];
 function boxTorneo() {
   const rows = classifica(state.torneo, state.people); const top = rows.length ? rows[0][1] : 0;
   const out = [h('div', { class: 'box tally' }, h('h3', {}, 'Torneo · Campione di Isola'),
@@ -649,14 +660,21 @@ function boxTorneo() {
 }
 
 function screenSetup() {
-  const s = setup; const n = s.sel.length; const lup = s.tipo === 'lupus';
-  const min = lup ? 5 : 3;
+  const s = setup; const n = s.sel.length; const lup = s.tipo === 'lupus'; const tab_ = s.tipo === 'taboo'; const nhm = s.tipo === 'nonhomai';
+  const min = lup ? 5 : tab_ ? 4 : nhm ? 1 : 3;
   const toggle = p => { s.sel = s.sel.includes(p) ? s.sel.filter(x => x !== p) : [...s.sel, p]; render(); };
   const opt = (label, on, fn) => h('button', { class: 'nominee', 'aria-pressed': on ? 'true' : 'false', onclick: () => { fn(); render(); } }, h('span', {}, (on ? '✓ ' : '') + label));
-  const out = [h('div', { class: 'box' }, h('h3', {}, 'Nuova partita'), h('h2', {}, lup ? 'Lupus in fabula' : 'L’impostore'),
+  const out = [h('div', { class: 'box' }, h('h3', {}, 'Nuova partita'), h('h2', {}, lup ? 'Lupus in fabula' : tab_ ? 'Parole vietate' : nhm ? 'Non ho mai' : 'L’impostore'),
     h('p', { class: 'sub' }, `Chi gioca? ${n} selezionati.`),
     h('div', { class: 'names' }, state.people.map(p => h('button', { class: 'nominee', 'aria-pressed': s.sel.includes(p) ? 'true' : 'false', onclick: () => toggle(p) }, h('span', {}, (s.sel.includes(p) ? '✓ ' : '') + p)))))];
-  if (!lup) {
+  if (tab_) {
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Regole'), h('p', { class: 'small' }, 'Le squadre le fa l’app a caso, metà e metà.'),
+      h('div', { class: 'row' }, h('span', {}, 'Secondi a turno'), ...[45, 60, 90].map(k => h('button', { class: k === s.opz.durata ? 'btn' : 'btn ghost', onclick: () => { s.opz.durata = k; render(); } }, String(k)))),
+      h('div', { class: 'row' }, h('span', {}, 'Si vince a'), ...[10, 20, 30].map(k => h('button', { class: k === s.opz.obiettivo ? 'btn' : 'btn ghost', onclick: () => { s.opz.obiettivo = k; render(); } }, String(k))))));
+  } else if (nhm) {
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Frasi'),
+      ...[['soft', 'Tranquille'], ['piccante', 'Piccanti'], ['tutte', 'Tutte mescolate']].map(([k, l]) => opt(l, s.opz.mazzo === k, () => { s.opz.mazzo = k; }))));
+  } else if (!lup) {
     const maxImp = Math.max(1, Math.floor((n - 1) / 2));
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Regole'),
       h('div', { class: 'row' }, h('span', {}, 'Impostori'), ...[1, 2].map(k => h('button', { class: k === s.opz.impostori ? 'btn' : 'btn ghost', disabled: k > maxImp || null, onclick: () => { s.opz.impostori = k; render(); } }, String(k)))),
@@ -678,7 +696,7 @@ function screenSetup() {
     h('button', { class: 'btn ghost', style: 'flex:1', onclick: () => { setup = null; render(); } }, 'Indietro'),
     h('button', { class: 'btn', style: 'flex:2', disabled: n < min || !me || null, onclick: () => {
       const players = state.people.filter(p => s.sel.includes(p));
-      const g = lup ? nuovoLupus(players, me, { ...s.opz, lupi: s.opz.lupi || lupiConsigliati(players.length) }) : nuovoImpostore(players, me, s.opz, (state.gioco && state.gioco.usate) || []);
+      const g = tab_ ? nuovoTaboo(players, me, s.opz) : nhm ? nuovoNonHoMai(players, me, s.opz.mazzo) : lup ? nuovoLupus(players, me, { ...s.opz, lupi: s.opz.lupi || lupiConsigliati(players.length) }) : nuovoImpostore(players, me, s.opz, (state.gioco && state.gioco.usate) || []);
       setup = null; cartaAperta = false; setGioco(g);
     } }, n < min ? `Servono almeno ${min} giocatori` : 'Inizia la partita')));
   return out;
@@ -777,6 +795,68 @@ function screenLupus(g) {
   }
   // se qualcuno si addormenta davvero
   if ((g.fase === 'notte' || g.fase === 'giorno') && gioca) out.push(conferma('gforza', 'Qualcuno non risponde: procedi senza', () => setGioco(g.fase === 'notte' ? risolviNotte(g) : risolviGiorno(g))));
+  out.push(fineBox(g));
+  return out;
+}
+
+function screenNonHoMai(g) {
+  const frase = fraseNonHoMai(g); const si = (g.si || {})[g.i] || {}; const mio = si[slugG(me)];
+  const chi = state.people.filter(p => si[slugG(p)]); const fine = g.i >= g.ordine.length - 1;
+  return [h('div', { class: 'box' }, h('h3', {}, 'Non ho mai · ' + (g.i + 1) + ' di ' + g.ordine.length + (g.mazzo === 'piccante' ? ' · piccante' : g.mazzo === 'tutte' ? ' · tutte' : '')),
+      h('p', { class: 'sub' }, 'Chi l’ha fatto beve un sorso (o alza la mano). Chiunque passa alla prossima.')),
+    h('div', { class: 'envelope current reveal' }, h('h3', {}, 'Non ho mai…'), h('p', { class: 'winner', style: 'font-size:28px;line-height:1.25' }, frase.replace(/^Non ho mai /, '…'))),
+    h('button', { class: 'btn ' + (mio ? 'ghost' : ''), onclick: () => setCampo(`gioco.si.${g.i}.${slugG(me)}`, !mio) }, mio ? 'Ops, no, non l’ho fatto' : 'Io l’ho fatto'),
+    chi.length ? h('p', { class: 'small' }, 'L’hanno fatto: ' + chi.join(', ')) : h('p', { class: 'small' }, 'Per ora nessuno confessa.'),
+    h('div', { class: 'row' }, h('button', { class: 'btn ghost', style: 'flex:1', disabled: g.i === 0 || null, onclick: () => setCampo('gioco.i', g.i - 1) }, 'Indietro'),
+      h('button', { class: 'btn big', style: 'flex:2', disabled: fine || null, onclick: () => setCampo('gioco.i', g.i + 1) }, fine ? 'Finite!' : 'Prossima')),
+    fineBox(g)];
+}
+
+// Parole vietate: chi spiega vede la carta e preme i pulsanti; la squadra avversaria vede la carta per controllare
+function chiudiTurnoTaboo(g) {
+  const sq = g.sq; const giro = [...g.giro]; giro[sq]++;
+  // si finisce a parità di turni: se la squadra 1 raggiunge l'obiettivo, la 2 ha ancora il suo turno
+  let fase = 'pronti', v = null;
+  const pari = giro[0] === giro[1];
+  if (pari && Math.max(...g.punti) >= g.obiettivo && g.punti[0] !== g.punti[1]) { fase = 'fine'; v = g.punti[0] > g.punti[1] ? 0 : 1; }
+  setGioco({ ...g, giro, sq: 1 - sq, fase, turno: null, vince: v, ultimo: { sq, ...g.turno } });
+}
+function screenTaboo(g) {
+  const out = []; const chi = spiega(g); const io = chi === me; const mia = g.squadre.findIndex(s => s.includes(me));
+  const nomeSq = i => 'Squadra ' + (i + 1);
+  out.push(h('div', { class: 'box tally' }, h('h3', {}, 'Parole vietate · si vince a ' + g.obiettivo),
+    ...[0, 1].map(i => h('div', {}, h('span', { class: i === mia ? 'mine' : null }, nomeSq(i) + ': ' + g.squadre[i].join(', ')), h('span', { class: 'count' }, String(g.punti[i])),
+      h('div', { class: 'bar' }, h('i', { style: `width:${Math.min(100, Math.max(0, g.punti[i]) / g.obiettivo * 100)}%` }))))));
+  if (g.fase === 'pronti') {
+    const u = g.ultimo;
+    out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Tocca a ' + nomeSq(g.sq)), h('h2', {}, chi + ' spiega'),
+      u ? h('p', { class: 'small' }, `Turno prima: ${nomeSq(u.sq)} +${u.ok || 0} indovinate, −${u.no || 0} vietate, ${u.pass || 0} passate.`) : null,
+      h('p', { class: 'sub' }, `${g.durata} secondi per far indovinare più parole possibili alla tua squadra senza dire la parola né quelle vietate (nemmeno pezzi o traduzioni). Indovinata +1, vietata −1, passo gratis. L’altra squadra vede la carta e controlla.`)));
+    if (io) out.push(h('button', { class: 'btn big', onclick: () => setGioco({ ...g, fase: 'turno', turno: { fine: Date.now() + g.durata * 1000, ok: 0, no: 0, pass: 0 } }) }, 'Via! Parte il tempo'));
+    else out.push(h('p', { class: 'small' }, 'Il tempo parte quando ' + chi + ' preme «Via» sul suo telefono.'),
+      conferma('tsalta', chi + ' non c’è: passa al prossimo', () => setGioco({ ...g, giro: g.giro.map((x, i) => i === g.sq ? x + 1 : x) })));
+  }
+  if (g.fase === 'turno') {
+    const t = g.turno; const left = t.fine - Date.now(); const [parola, vietate] = cartaTaboo(g);
+    const vede = io || (mia !== -1 && mia !== g.sq) || !g.players.includes(me);
+    out.push(h('div', { class: 'box' }, h('h3', {}, chi + ' spiega · ' + nomeSq(g.sq)),
+      h('p', { class: 'winner', style: 'font-size:44px' }, h('span', { 'data-end': String(t.fine), 'data-s': '1' }, Math.max(0, Math.ceil(left / 1000)) + ' s')),
+      h('p', { class: 'small' }, `In questo turno: +${t.ok} · −${t.no} · ${t.pass} passate`)));
+    if (vede) out.push(h('div', { class: 'envelope current reveal' }, h('p', { class: 'winner' }, parola),
+      h('h3', {}, 'Non puoi dire'), h('ol', { class: 'nomi', style: 'list-style:none;padding:0;font-size:20px' }, vietate.map(v => h('li', {}, v)))));
+    else out.push(h('div', { class: 'box' }, h('h2', {}, 'Indovina!'), h('p', { class: 'sub' }, 'Sei nella squadra di ' + chi + ': ascolta e grida la risposta.')));
+    const premi = (campo, d) => setGioco({ ...g, pos: g.pos + 1, punti: g.punti.map((x, i) => i === g.sq ? x + d : x), turno: { ...t, [campo]: t[campo] + 1 } });
+    if (io && left > 0) out.push(h('div', { class: 'row' },
+      h('button', { class: 'btn danger', style: 'flex:1', onclick: () => premi('no', -1) }, 'Vietata −1'),
+      h('button', { class: 'btn ghost', style: 'flex:1', onclick: () => premi('pass', 0) }, 'Passo'),
+      h('button', { class: 'btn big', style: 'flex:2', onclick: () => premi('ok', 1) }, 'Indovinata +1')));
+    tick(true);
+  }
+  if (g.fase === 'fine') {
+    out.push(h('div', { class: 'envelope current reveal' }, h('h3', {}, 'Vince'), h('p', { class: 'winner' }, nomeSq(g.vince)),
+      h('p', { class: 'sub' }, g.squadre[g.vince].join(', ') + ` · ${g.punti[g.vince]} a ${g.punti[1 - g.vince]}. Due punti a testa nel torneo.`)));
+    out.push(h('button', { class: 'btn big', onclick: () => setGioco(nuovoTaboo(g.players, me, { durata: g.durata, obiettivo: g.obiettivo })) }, 'Rivincita, squadre nuove'));
+  }
   out.push(fineBox(g));
   return out;
 }

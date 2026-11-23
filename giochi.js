@@ -182,3 +182,104 @@ export function classifica(torneo, people) {
   for (const m of Object.values(torneo?.man || {})) for (const n of m.chi || []) t[n] = (t[n] || 0) + (m.pt || 0);
   return Object.entries(t).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
+
+/* ================= NON HO MAI ================= */
+export const NONHOMAI = {
+  soft: [
+    'Non ho mai dormito in macchina', 'Non ho mai perso un aereo o un treno', 'Non ho mai finto di essere malato per non andare a scuola o al lavoro',
+    'Non ho mai mangiato un’intera pizza famiglia da solo', 'Non ho mai cantato al karaoke', 'Non ho mai pianto guardando un cartone animato',
+    'Non ho mai rotto qualcosa a casa d’altri senza dirlo', 'Non ho mai dimenticato il compleanno di un amico', 'Non ho mai fatto un tatuaggio',
+    'Non ho mai sbagliato strada per più di un’ora', 'Non ho mai bruciato una pentola', 'Non ho mai mandato un messaggio alla persona sbagliata',
+    'Non ho mai dormito più di 14 ore di fila', 'Non ho mai fatto il bagno al mare a dicembre', 'Non ho mai preso una multa',
+    'Non ho mai visto l’alba senza essere andato a dormire', 'Non ho mai riciclato un regalo', 'Non ho mai mentito sulla mia età',
+    'Non ho mai mangiato qualcosa caduto per terra', 'Non ho mai litigato con un controllore', 'Non ho mai chiamato la maestra «mamma»',
+    'Non ho mai fatto finta di conoscere una canzone', 'Non ho mai spoilerato un film apposta', 'Non ho mai perso le chiavi di casa',
+    'Non ho mai fatto la doccia vestito', 'Non ho mai guardato una serie intera in un giorno', 'Non ho mai scritto una poesia',
+    'Non ho mai preso un 2 a scuola', 'Non ho mai copiato un compito in classe', 'Non ho mai fatto campeggio',
+    'Non ho mai ballato su un tavolo', 'Non ho mai fatto una figuraccia davanti a un professore', 'Non ho mai mangiato lumache',
+    'Non ho mai parlato da solo ad alta voce in pubblico', 'Non ho mai lasciato un ristorante senza pagare per sbaglio', 'Non ho mai vinto qualcosa a un concorso',
+    'Non ho mai incontrato una persona famosa', 'Non ho mai fatto uno scherzo telefonico', 'Non ho mai buttato il telefono nel water',
+    'Non ho mai preso il treno senza biglietto', 'Non ho mai fatto il pieno della macchina sbagliando carburante', 'Non ho mai fatto un selfie con uno sconosciuto',
+    'Non ho mai pianto a un matrimonio', 'Non ho mai detto «ti amo» per primo', 'Non ho mai fatto un viaggio da solo',
+    'Non ho mai cucinato per più di dieci persone', 'Non ho mai sognato di essere in mutande a scuola', 'Non ho mai finto di essere al telefono per evitare qualcuno',
+    'Non ho mai mangiato a colazione gli avanzi della cena', 'Non ho mai perso a un gioco da tavolo e tenuto il muso', 'Non ho mai vomitato in macchina',
+    'Non ho mai fatto la spesa in pigiama', 'Non ho mai ascoltato la stessa canzone dieci volte di fila', 'Non ho mai preso un pesce'
+  ],
+  piccante: [
+    'Non ho mai baciato qualcuno conosciuto la sera stessa', 'Non ho mai scritto a un ex dopo mezzanotte', 'Non ho mai bevuto così tanto da non ricordare la serata',
+    'Non ho mai baciato qualcuno in questa stanza', 'Non ho mai avuto una cotta per un amico di questa stanza', 'Non ho mai stalkerato un ex sui social',
+    'Non ho mai mentito per uscire con qualcuno', 'Non ho mai dato un numero di telefono falso', 'Non ho mai fatto un appuntamento al buio',
+    'Non ho mai usato un’app di incontri', 'Non ho mai lasciato qualcuno per messaggio', 'Non ho mai baciato due persone nella stessa sera',
+    'Non ho mai fatto il bagno nudo', 'Non ho mai dormito sul pavimento dopo una festa', 'Non ho mai detto il nome sbagliato in un momento romantico',
+    'Non ho mai letto i messaggi del telefono di qualcun altro', 'Non ho mai finto di essermi addormentato per non parlare', 'Non ho mai avuto una storia segreta',
+    'Non ho mai bevuto direttamente dalla bottiglia a una festa', 'Non ho mai flirtato per avere uno sconto', 'Non ho mai vomitato a una festa',
+    'Non ho mai baciato qualcuno per una scommessa', 'Non ho mai mandato una foto di cui mi sono pentito', 'Non ho mai detto una bugia in questa vacanza',
+    'Non ho mai parlato male di qualcuno in questa stanza', 'Non ho mai dimenticato il nome della persona con cui stavo uscendo', 'Non ho mai fatto una dichiarazione da ubriaco',
+    'Non ho mai saltato il lavoro per i postumi', 'Non ho mai ballato un lento con uno sconosciuto', 'Non ho mai fatto pace con qualcuno solo per convenienza'
+  ]
+};
+export function nuovoNonHoMai(players, by, mazzo = 'soft', rnd = Math.random) {
+  const frasi = mazzo === 'tutte' ? [...NONHOMAI.soft, ...NONHOMAI.piccante] : NONHOMAI[mazzo] || NONHOMAI.soft;
+  return { tipo: 'nonhomai', id: String(Date.now()) + Math.floor(rnd() * 1000), by, players, mazzo, ordine: shuffle(frasi.map((_, i) => i), rnd), i: 0, si: {} };
+}
+export const fraseNonHoMai = g => (g.mazzo === 'tutte' ? [...NONHOMAI.soft, ...NONHOMAI.piccante] : NONHOMAI[g.mazzo] || NONHOMAI.soft)[g.ordine[g.i]];
+
+/* ================= PAROLE VIETATE (a squadre, a tempo) ================= */
+export const CARTE = [
+  ['Capodanno', ['anno', 'mezzanotte', 'brindisi', 'gennaio', 'festa']], ['Spumante', ['bollicine', 'brindisi', 'vino', 'bottiglia', 'tappo']],
+  ['Cotechino', ['lenticchie', 'maiale', 'salume', 'Modena', 'zampone']], ['Panettone', ['Natale', 'dolce', 'canditi', 'Milano', 'pandoro']],
+  ['Tombola', ['numeri', 'cartella', 'cinquina', 'Natale', 'gioco']], ['Fuochi d’artificio', ['botti', 'cielo', 'colori', 'scoppio', 'mezzanotte']],
+  ['Befana', ['strega', 'scopa', 'calza', 'carbone', 'gennaio']], ['Presepe', ['Gesù', 'grotta', 'statuine', 'Natale', 'bue']],
+  ['Pinguino', ['ghiaccio', 'uccello', 'bianco', 'nero', 'Antartide']], ['Giraffa', ['collo', 'lungo', 'Africa', 'macchie', 'animale']],
+  ['Zanzara', ['puntura', 'estate', 'insetto', 'prurito', 'sangue']], ['Gatto', ['miao', 'felino', 'baffi', 'topo', 'animale']],
+  ['Ombrello', ['pioggia', 'aprire', 'bagnato', 'riparo', 'manico']], ['Valigia', ['viaggio', 'vestiti', 'ruote', 'aeroporto', 'bagaglio']],
+  ['Specchio', ['riflesso', 'vetro', 'guardare', 'bagno', 'immagine']], ['Forchetta', ['coltello', 'cucchiaio', 'mangiare', 'posata', 'punte']],
+  ['Lavatrice', ['panni', 'lavare', 'bucato', 'detersivo', 'centrifuga']], ['Telecomando', ['televisione', 'canale', 'tasti', 'divano', 'pile']],
+  ['Candela', ['cera', 'fiamma', 'luce', 'stoppino', 'accendere']], ['Cuscino', ['letto', 'dormire', 'testa', 'morbido', 'federa']],
+  ['Pizza', ['mozzarella', 'pomodoro', 'Napoli', 'forno', 'margherita']], ['Tiramisù', ['mascarpone', 'caffè', 'savoiardi', 'dolce', 'cacao']],
+  ['Lasagna', ['besciamella', 'ragù', 'forno', 'pasta', 'strati']], ['Gelato', ['cono', 'freddo', 'gusto', 'estate', 'coppetta']],
+  ['Pesto', ['basilico', 'Genova', 'pinoli', 'trofie', 'verde']], ['Focaccia', ['Genova', 'olio', 'pane', 'forno', 'sale']],
+  ['Caffè', ['tazzina', 'moka', 'espresso', 'bar', 'zucchero']], ['Birra', ['bionda', 'luppolo', 'boccale', 'schiuma', 'pinta']],
+  ['Spritz', ['Aperol', 'arancione', 'prosecco', 'aperitivo', 'Veneto']], ['Nutella', ['nocciole', 'cioccolato', 'spalmabile', 'barattolo', 'pane']],
+  ['Ospedale', ['medico', 'malato', 'infermiere', 'pronto soccorso', 'letto']], ['Aeroporto', ['aereo', 'volo', 'valigia', 'imbarco', 'pista']],
+  ['Spiaggia', ['mare', 'sabbia', 'ombrellone', 'sole', 'estate']], ['Biblioteca', ['libri', 'leggere', 'silenzio', 'prestito', 'scaffali']],
+  ['Cimitero', ['morti', 'tombe', 'fiori', 'lapide', 'funerale']], ['Discoteca', ['ballare', 'musica', 'dj', 'notte', 'luci']],
+  ['Palestra', ['pesi', 'allenamento', 'muscoli', 'sudore', 'abbonamento']], ['Supermercato', ['spesa', 'carrello', 'cassa', 'scaffali', 'prodotti']],
+  ['Zoo', ['animali', 'gabbie', 'leone', 'visitare', 'scimmie']], ['Montagna', ['neve', 'vetta', 'sciare', 'alta', 'rifugio']],
+  ['Medico', ['ospedale', 'malattia', 'ricetta', 'dottore', 'curare']], ['Pompiere', ['fuoco', 'incendio', 'idrante', 'scala', 'spegnere']],
+  ['Idraulico', ['tubo', 'acqua', 'perdita', 'lavandino', 'riparare']], ['Parrucchiere', ['capelli', 'tagliare', 'forbici', 'piega', 'shampoo']],
+  ['Cuoco', ['cucina', 'ricetta', 'chef', 'pentola', 'cucinare']], ['Poliziotto', ['legge', 'arresto', 'divisa', 'multa', 'ladro']],
+  ['Giornalista', ['notizia', 'giornale', 'articolo', 'scrivere', 'intervista']], ['Sindaco', ['comune', 'città', 'elezioni', 'fascia', 'paese']],
+  ['Detective', ['indagine', 'giallo', 'colpevole', 'indizio', 'Sherlock']], ['Veleno', ['morire', 'avvelenare', 'tossico', 'serpente', 'boccetta']],
+  ['Testamento', ['eredità', 'morte', 'notaio', 'soldi', 'parenti']], ['Cassaforte', ['codice', 'soldi', 'chiusa', 'combinazione', 'ladro']],
+  ['Alibi', ['dove', 'eri', 'prova', 'colpevole', 'innocente']], ['Impronta', ['dito', 'piede', 'traccia', 'polizia', 'lasciare']],
+  ['Calcio', ['pallone', 'gol', 'squadra', 'partita', 'stadio']], ['Sciare', ['neve', 'montagna', 'pista', 'sci', 'scendere']],
+  ['Karaoke', ['cantare', 'canzone', 'microfono', 'testo', 'stonato']], ['Selfie', ['foto', 'telefono', 'faccia', 'Instagram', 'scattare']],
+  ['WhatsApp', ['messaggio', 'chat', 'gruppo', 'telefono', 'vocale']], ['Netflix', ['serie', 'film', 'abbonamento', 'guardare', 'divano']],
+  ['Babbo Natale', ['regali', 'barba', 'renne', 'slitta', 'rosso']], ['Dracula', ['vampiro', 'sangue', 'conte', 'denti', 'Transilvania']],
+  ['Sherlock Holmes', ['detective', 'Watson', 'Londra', 'pipa', 'indagine']], ['Pinocchio', ['naso', 'bugie', 'legno', 'Geppetto', 'burattino']],
+  ['Harry Potter', ['mago', 'Hogwarts', 'bacchetta', 'occhiali', 'cicatrice']], ['Cenerentola', ['scarpetta', 'principe', 'mezzanotte', 'zucca', 'matrigna']],
+  ['Treno', ['binari', 'stazione', 'vagone', 'biglietto', 'ritardo']], ['Bicicletta', ['pedali', 'ruote', 'sellino', 'pedalare', 'catena']],
+  ['Monopattino', ['elettrico', 'ruote', 'città', 'manubrio', 'spingere']], ['Nave', ['mare', 'barca', 'porto', 'crociera', 'capitano']],
+  ['Ascensore', ['piano', 'salire', 'scendere', 'bottone', 'palazzo']], ['Semaforo', ['rosso', 'verde', 'giallo', 'strada', 'incrocio']],
+  ['Sveglia', ['mattina', 'suonare', 'dormire', 'orario', 'alzarsi']], ['Diamante', ['pietra', 'prezioso', 'anello', 'brillante', 'gioiello']],
+  ['Oro', ['metallo', 'giallo', 'prezioso', 'gioiello', 'orefice']], ['Fagiano', ['uccello', 'caccia', 'impagliato', 'coda', 'piume']],
+  ['Po', ['fiume', 'Torino', 'lungo', 'acqua', 'pianura']], ['Nebbia', ['grigio', 'vedere', 'pianura', 'autunno', 'fitta']],
+  ['Genova', ['Liguria', 'porto', 'pesto', 'mare', 'Lanterna']], ['Valenza', ['oro', 'gioielli', 'orafi', 'Alessandria', 'Piemonte']],
+  ['Postumi', ['bere', 'testa', 'mattina', 'dopo', 'sbornia']], ['Pigiama', ['dormire', 'letto', 'notte', 'vestito', 'comodo']],
+  ['Russare', ['dormire', 'rumore', 'naso', 'notte', 'letto']], ['Barbecue', ['griglia', 'carne', 'brace', 'fuoco', 'estate']],
+  ['Beer pong', ['birra', 'pallina', 'bicchieri', 'tavolo', 'lanciare']], ['Oscar', ['premio', 'statuetta', 'cinema', 'attore', 'Hollywood']]
+];
+export function nuovoTaboo(players, by, opz = {}, rnd = Math.random) {
+  const m = shuffle(players, rnd); const met = Math.ceil(m.length / 2);
+  return { tipo: 'taboo', id: String(Date.now()) + Math.floor(rnd() * 1000), by, players, squadre: [m.slice(0, met), m.slice(met)],
+    punti: [0, 0], durata: opz.durata || 60, obiettivo: opz.obiettivo || 20, mazzo: shuffle(CARTE.map((_, i) => i), rnd), pos: 0,
+    sq: 0, giro: [0, 0], fase: 'pronti', turno: null, vince: null };
+}
+// chi spiega adesso: a rotazione dentro la squadra di turno
+export const spiega = g => { const s = g.squadre[g.sq]; return s[g.giro[g.sq] % s.length]; };
+export const cartaTaboo = g => CARTE[g.mazzo[g.pos % g.mazzo.length]];
+export function puntiTaboo(g) {
+  if (!g.vince && g.vince !== 0) return null; const p = {};
+  for (const n of g.squadre[g.vince]) p[n] = 2; return p;
+}
