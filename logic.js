@@ -38,7 +38,8 @@ export const CATEGORIES = [
   { id: 'interpretazione', label: 'Miglior interpretazione del giallo', kind: 'person', noNarrator: true, note: 'Chi è entrato di più nel personaggio durante il giallo: voce, battute, bugie credibili, colpi di scena. Conta come ha recitato, non se ha indovinato il colpevole.' },
   { id: 'assurdo',         label: 'Protagonista del momento più assurdo', kind: 'person', note: 'Chi è stato al centro della scena più surreale di questi tre giorni: una frase, una figuraccia, un’idea folle. Quella che racconterete ancora l’anno prossimo.' },
   { id: 'sveglia',         label: 'Il più lento a svegliarsi', kind: 'person', note: 'Chi ha fatto più fatica a ingranare dopo le nottate: ultimo ad alzarsi, a colazione con gli occhi chiusi, ancora in pigiama a pranzo.' },
-  { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person', note: 'Chi ti ha sorpreso di più: un talento nascosto in cucina o nel giallo, un lato che non conoscevi, la persona che non ti aspettavi.' }
+  { id: 'rivelazione',     label: 'Rivelazione dell’anno', kind: 'person', note: 'Chi ti ha sorpreso di più: un talento nascosto in cucina o nel giallo, un lato che non conoscevi, la persona che non ti aspettavi.' },
+  { id: 'campione',        label: 'Campione di Isola', kind: 'torneo', note: 'Non si vota: vince chi ha fatto più punti nel torneo dei tre giorni (giochi dell’app, giallo, beer pong e il resto).' }
 ];
 
 export const PROGRAM = [
@@ -116,7 +117,7 @@ export function nominees(cat, voter, state) {
 
 // Categorie votabili: il piatto solo se le squadre sono state sorteggiate; il detective non si vota.
 export const spoglioCategories = state => CATEGORIES.filter(c => c.kind !== 'dish' || (state.teams || []).length >= 1);
-export const activeCategories = state => spoglioCategories(state).filter(c => c.kind !== 'auto');
+export const activeCategories = state => spoglioCategories(state).filter(c => c.kind !== 'auto' && c.kind !== 'torneo');
 
 // Miglior detective: chi ha accusato per primo il colpevole (in ordine di orario dell'accusa).
 export function detectives(accuse, culprit) {

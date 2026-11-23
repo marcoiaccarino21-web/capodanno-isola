@@ -150,3 +150,35 @@ export function risolviGiorno(g) {
   return { ...ng, fase: vince ? 'fine' : 'esito', vince, log: [...g.log, giustiziato ? `Giorno ${g.turno}: il villaggio ha giustiziato ${giustiziato}.` : `Giorno ${g.turno}: pareggio, nessuno giustiziato.`] };
 }
 export const nuovaNotte = g => ({ ...g, fase: 'notte', turno: g.turno + 1 });
+
+/* ================= TORNEO «CAMPIONE DI ISOLA» ================= */
+// torneo = { auto: { <chiave partita>: { gioco, punti: {nome: n} } }, man: { <ts>: { gioco, chi: [nomi], pt, da } } }
+// I punti automatici sono scritti con la chiave della partita: riscriverli dà sempre lo stesso risultato.
+export function puntiImpostore(g) {
+  const voti = g.voti || {}; if (!Object.keys(voti).length) return null;
+  const top = piuVotati(voti, g.players); const preso = top.length === 1 && g.impostori.includes(top[0]);
+  const p = {};
+  if (preso) { for (const n of g.players) if (g.impostori.includes(voti[slugG(n)])) p[n] = 1; }
+  else for (const n of g.impostori) p[n] = 3;
+  return p;
+}
+export function puntiLupus(g) {
+  if (!g.vince) return null; const p = {};
+  for (const n of g.players) { const lupo = ruoloDi(g, n) === 'lupo';
+    if ((g.vince === 'lupi') === lupo) p[n] = 2 + (g.morti.includes(n) ? 0 : 1); }
+  return p;
+}
+// giallo: 2 punti a chi accusa il colpevole (3 al primo); 4 al colpevole se meno di metà lo accusa
+export function puntiGiallo(accuse, colpevole, narratore) {
+  const ok = accuse.filter(a => a.voter !== narratore && a.suspect === colpevole).sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  const p = {}; ok.forEach((a, i) => { p[a.voter] = i === 0 ? 3 : 2; });
+  const tot = accuse.filter(a => a.voter !== narratore && a.voter !== colpevole).length;
+  if (colpevole && ok.length * 2 < tot) p[colpevole] = 4;
+  return p;
+}
+export function classifica(torneo, people) {
+  const t = Object.fromEntries((people || []).map(n => [n, 0]));
+  for (const a of Object.values(torneo?.auto || {})) for (const [n, k] of Object.entries(a.punti || {})) t[n] = (t[n] || 0) + k;
+  for (const m of Object.values(torneo?.man || {})) for (const n of m.chi || []) t[n] = (t[n] || 0) + (m.pt || 0);
+  return Object.entries(t).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}

@@ -3,7 +3,7 @@ import { getFirestore, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, DISHES, SPESA, RICETTE, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, nominations, assignCharacters } from './logic.js';
 import { GIALLO, femminile } from './giallo.js';
-import { PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG } from './giochi.js';
+import { classifica, puntiImpostore, puntiLupus, puntiGiallo, PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG } from './giochi.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
 const HOME = SOLO ? 'giallo' : 'squadra';
@@ -13,7 +13,7 @@ import { ACCESSORI, cartellino, pdfDi, PDF_TUTTI } from './accessori.js';
 
 /* ---------- stato ---------- */
 const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null, allarme: null };
-let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], nominated: [], revealedAt: {}, presenter: null, presenterMode: 'staffetta', giallo: NO_GIALLO, tavola: null, gioco: null };
+let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], nominated: [], revealedAt: {}, presenter: null, presenterMode: 'staffetta', giallo: NO_GIALLO, tavola: null, gioco: null, torneo: {} };
 let RITRATTI = {};
 caricaRitratti().then(r => { RITRATTI = r; render(); }).catch(() => {});
 let accuse = [];            // [{id, voter, suspect}]
@@ -37,7 +37,7 @@ if (configured) {
   stateRef = doc(db, 'capodanno', 'stato');
   onSnapshot(stateRef, snap => {
     const v = snap.exists() ? snap.data() : {};
-    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], nominated: v.nominated || [], revealedAt: v.revealedAt || {}, presenter: v.presenter || null, presenterMode: v.presenterMode || 'staffetta', giallo: { ...NO_GIALLO, ...(v.giallo || {}) }, tavola: v.tavola || null, gioco: v.gioco || null };
+    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], nominated: v.nominated || [], revealedAt: v.revealedAt || {}, presenter: v.presenter || null, presenterMode: v.presenterMode || 'staffetta', giallo: { ...NO_GIALLO, ...(v.giallo || {}) }, tavola: v.tavola || null, gioco: v.gioco || null, torneo: v.torneo || {} };
     loaded = true;
     if (me && !state.people.includes(me)) { me = null; save('me', null); if (tab !== 'regia') tab = 'chi'; }
     render();
@@ -126,7 +126,7 @@ function screenOscar() {
   if (state.opened) return screenSpoglio(spoglioCategories(state));
   if (!state.votingOpen) return [h('div', { class: 'box' }, h('h3', {}, 'Gli Oscar del Capodanno'), h('h2', {}, 'Le urne sono chiuse'),
     h('p', { class: 'sub' }, 'Si vota il 1° gennaio. Le categorie:'),
-    h('div', { class: 'list' }, CATEGORIES.map(c => h('div', { class: 'item' }, h('b', {}, c.kind === 'dish' ? 'Piatto' : c.kind === 'auto' ? 'Dalle accuse' : 'Persona'), h('span', {}, c.label)))))];
+    h('div', { class: 'list' }, CATEGORIES.map(c => h('div', { class: 'item' }, h('b', {}, c.kind === 'dish' ? 'Piatto' : c.kind === 'auto' ? 'Dalle accuse' : c.kind === 'torneo' ? 'Dal torneo' : 'Persona'), h('span', {}, c.label)))))];
   if (myBallot()) return [h('div', { class: 'box reveal' }, h('h3', {}, 'Scheda nell’urna'), h('h2', {}, 'Hai votato'),
     h('p', { class: 'sub' }, `Hanno votato ${ballots.length} su ${state.people.length}. Le buste si aprono tutti insieme.`))];
   if (!flow) return [h('div', { class: 'box' }, h('h3', {}, 'Urne aperte'), h('h2', {}, 'Tocca a te, ' + me),
@@ -158,6 +158,11 @@ async function castVote() {
 const DISCORSO = 30000;
 let sbircia = null; // busta di cui il presentatore ha già visto il vincitore (solo su questo telefono)
 function esito(c) {
+  if (c.kind === 'torneo') {
+    const rows = classifica(state.torneo, state.people).filter(r => r[1] > 0); const top = rows.length ? rows[0][1] : 0;
+    const t = { rows, top, winners: rows.filter(r => r[1] === top).map(r => r[0]) };
+    return { t, nome: v => v, squadre: [], nomi: nominations(rows).map(r => r[0]), vincitori: t.winners, persone: t.winners, punti: true };
+  }
   if (c.kind === 'auto') {
     const d = detectives(accuse.filter(a => a.voter !== state.giallo.narrator), GIALLO.culprit);
     return { nomi: d.slice(0, 3).map(x => x.voter), vincitori: d.length ? [d[0].voter] : [], dopo: d.slice(1), persone: d.length ? [d[0].voter] : [], d };
@@ -214,7 +219,7 @@ function screenSpoglio(cats) {
     if (open) {
       const t0 = Date.parse(state.revealedAt[c.id] || 0) || 0, dt = Date.now() - t0;
       {
-        kids.push(h('p', { class: 'winner' }, e.vincitori.length ? e.vincitori.join(' e ') : c.kind === 'auto' ? 'Nessuno' : 'Nessun voto'));
+        kids.push(h('p', { class: 'winner' }, e.vincitori.length ? e.vincitori.join(' e ') : c.kind === 'auto' ? 'Nessuno' : e.punti ? 'Nessun punto' : 'Nessun voto'));
         if (c.kind === 'auto') {
           kids.push(h('p', { class: 'sub' }, e.d.length ? 'Il primo ad accusare il colpevole, alle ' + ora(e.d[0]) + '.' : 'Nessuno ha accusato il colpevole.'));
           if (e.dopo.length) kids.push(h('p', { class: 'small' }, 'Dopo: ' + e.dopo.map(x => x.voter + ' (' + ora(x) + ')').join(', ')));
@@ -224,7 +229,7 @@ function screenSpoglio(cats) {
         }
         const left = DISCORSO - dt;
         if (left > 0 && e.vincitori.length) { attivo = true; kids.push(h('div', { class: 'speech' }, h('b', {}, 'Discorso di ringraziamento'), h('span', { class: 'count', 'data-end': t0 + DISCORSO, 'data-s': 1 }, Math.ceil(left / 1000) + ' s'), h('span', { class: 'bar' }, h('i', { 'data-end': t0 + DISCORSO, 'data-dur': DISCORSO, style: `width:${left / DISCORSO * 100}%` })))); }
-        else if (e.t) kids.push(h('div', { class: 'tally' }, e.t.rows.map(([n, k]) => h('div', {}, h('span', {}, e.nome(n)), h('span', { class: 'count' }, `${k} ${k === 1 ? 'voto' : 'voti'}`),
+        else if (e.t) kids.push(h('div', { class: 'tally' }, e.t.rows.map(([n, k]) => h('div', {}, h('span', {}, e.nome(n)), h('span', { class: 'count' }, `${k} ${e.punti ? (k === 1 ? 'punto' : 'punti') : k === 1 ? 'voto' : 'voti'}`),
           h('span', { class: 'bar' }, h('i', { style: `width:${e.t.top ? k / e.t.top * 100 : 0}%` }))))));
       }
     } else if (nom && cur && presenta()) {
@@ -232,7 +237,7 @@ function screenSpoglio(cats) {
         e.nomi.length ? h('ul', { class: 'nomi' }, e.nomi.map(n => h('li', {}, n))) : h('p', { class: 'sub' }, c.kind === 'auto' ? 'Nessuno ha indovinato il colpevole.' : 'Nessun voto.'));
       if (sbircia !== c.id) kids.push(h('button', { class: 'btn', onclick: () => { sbircia = c.id; render(); } }, 'E l’Oscar va a… (guarda il vincitore)'));
       else kids.push(h('p', { class: 'step', style: 'text-align:left' }, 'Annuncia ad alta voce'),
-        h('p', { class: 'winner' }, e.vincitori.length ? e.vincitori.join(' e ') : c.kind === 'auto' ? 'Nessuno' : 'Nessun voto'),
+        h('p', { class: 'winner' }, e.vincitori.length ? e.vincitori.join(' e ') : c.kind === 'auto' ? 'Nessuno' : e.punti ? 'Nessun punto' : 'Nessun voto'),
         h('button', { class: 'btn', onclick: () => { sbircia = null; apriBusta(c); } }, 'Annunciato: parte il discorso'));
     } else if (nom && cur) {
       kids.push(h('p', { class: 'sub' }, 'Il presentatore ha aperto la busta: ascolta le nomination…'));
@@ -565,8 +570,22 @@ async function setCampo(path, v) {
   catch (e) { error = 'Voto non salvato (' + e.code + '). Riprova.'; render(); }
 }
 // chiude in automatico la fase quando tutti hanno fatto la loro mossa: lo fa il primo telefono che se ne accorge
+// scrive i punti del torneo di una partita finita, solo se mancano o sono cambiati
+function segnaPunti(key, gioco, punti) {
+  if (!punti || !stateRef) return;
+  const ora = state.torneo?.auto?.[key];
+  if (ora && JSON.stringify(ora.punti) === JSON.stringify(punti)) return;
+  if (segnati[key] === JSON.stringify(punti)) return;
+  segnati[key] = JSON.stringify(punti);
+  updateDoc(stateRef, { ['torneo.auto.' + key]: { gioco, punti } }).catch(() => { delete segnati[key]; });
+}
+var segnati = {};
 function avanzaGioco() {
+  const gg = state.giallo;
+  if (gg && gg.solved && accuse.length) segnaPunti('giallo', 'Giallo', puntiGiallo(accuse, (gg.assign.find(a => a.c === GIALLO.culprit) || {}).p, gg.narrator));
   const g = state.gioco; if (!g) return;
+  if (g.tipo === 'impostore' && g.fase === 'svelato') segnaPunti('i' + g.id, 'Impostore', puntiImpostore(g));
+  if (g.tipo === 'lupus' && g.fase === 'fine') segnaPunti('l' + g.id, 'Lupus', puntiLupus(g));
   const k = g.id + ':' + g.fase + ':' + (g.turno || 0);
   if (chiuso === k) return;
   if (g.tipo === 'lupus' && g.fase === 'notte' && notteCompleta(g)) { chiuso = k; setGioco(risolviNotte(g)); }
@@ -601,7 +620,32 @@ function screenGiochi() {
     h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'impostore', sel: [...state.people], opz: { impostori: 1, modo: 'sa', indizio: true } }; render(); } },
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'L’impostore'), h('small', {}, 'Tutti hanno la stessa parola tranne l’impostore. A turno dite una parola collegata, poi votate chi bluffa. Da 3 giocatori.')),
     h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'lupus', sel: [...state.people], opz: { lupi: 0, veggente: true, guardia: true, medium: true } }; render(); } },
-      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Lupus in fabula'), h('small', {}, 'Lupi contro villaggio. Di notte i lupi sbranano, di giorno il villaggio vota chi giustiziare. L’app fa da narratore. Da 5 giocatori.'))];
+      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Lupus in fabula'), h('small', {}, 'Lupi contro villaggio. Di notte i lupi sbranano, di giorno il villaggio vota chi giustiziare. L’app fa da narratore. Da 5 giocatori.')),
+    ...boxTorneo()];
+}
+var punti = null; // { gioco, chi: [], pt }
+const GIOCHI_TORNEO = ['Beer pong', 'Flip cup', 'Ring of fire', 'Codenames', 'Taboo', 'Dixit', 'Altro'];
+function boxTorneo() {
+  const rows = classifica(state.torneo, state.people); const top = rows.length ? rows[0][1] : 0;
+  const out = [h('div', { class: 'box tally' }, h('h3', {}, 'Torneo · Campione di Isola'),
+    h('p', { class: 'small' }, 'Punti automatici da impostore (1 a chi vota giusto, 3 all’impostore che la fa franca), lupus (2 a chi vince, +1 se è vivo) e giallo (2 a chi accusa il colpevole, 3 al primo, 4 al colpevole se lo scopre meno di metà). Il resto lo segnate voi. Chi è primo il 1° gennaio vince l’Oscar.'),
+    ...rows.map(([n, k], i) => h('div', {}, h('span', { class: n === me ? 'mine' : null }, (i + 1) + '. ' + n), h('span', { class: 'count' }, k + (k === 1 ? ' punto' : ' punti')),
+      h('div', { class: 'bar' }, h('i', { style: `width:${top ? Math.max(0, k) / top * 100 : 0}%` })))))];
+  if (!punti) out.push(h('button', { class: 'btn ghost', onclick: () => { punti = { gioco: GIOCHI_TORNEO[0], chi: [], pt: 1 }; render(); } }, 'Segna dei punti'));
+  else out.push(h('div', { class: 'box' }, h('h3', {}, 'Segna dei punti'),
+    h('div', { class: 'row' }, GIOCHI_TORNEO.map(x => h('button', { class: x === punti.gioco ? 'btn' : 'btn ghost', style: 'padding:8px 12px;min-height:36px;font-size:14px', onclick: () => { punti.gioco = x; render(); } }, x))),
+    h('p', { class: 'small' }, 'A chi? Tocca uno o più nomi (per esempio tutta la squadra che ha vinto).'),
+    h('div', { class: 'names' }, state.people.map(n => h('button', { class: 'nominee', 'aria-pressed': punti.chi.includes(n) ? 'true' : 'false', onclick: () => { punti.chi = punti.chi.includes(n) ? punti.chi.filter(x => x !== n) : [...punti.chi, n]; render(); } }, h('span', {}, (punti.chi.includes(n) ? '✓ ' : '') + n)))),
+    h('div', { class: 'row' }, h('span', {}, 'Punti a testa'), [1, 2, 3, -1].map(k => h('button', { class: k === punti.pt ? 'btn' : 'btn ghost', onclick: () => { punti.pt = k; render(); } }, k > 0 ? '+' + k : String(k)))),
+    h('div', { class: 'row' }, h('button', { class: 'btn ghost', style: 'flex:1', onclick: () => { punti = null; render(); } }, 'Annulla'),
+      h('button', { class: 'btn', style: 'flex:2', disabled: !punti.chi.length || !me || null, onclick: () => { const p = punti; punti = null;
+        updateDoc(stateRef, { ['torneo.man.' + Date.now()]: { gioco: p.gioco, chi: p.chi, pt: p.pt, da: me } }).catch(e => { error = 'Punti non salvati (' + e.code + ').'; }); render(); } }, 'Salva'))));
+  const man = Object.entries(state.torneo?.man || {}).sort((a, b) => b[0] - a[0]).slice(0, 8);
+  const auto = Object.values(state.torneo?.auto || {});
+  if (man.length || auto.length) out.push(h('details', { class: 'box ricetta' }, h('summary', {}, h('h3', {}, 'Storico dei punti')),
+    h('div', { class: 'list' }, ...man.map(([t, m]) => h('div', { class: 'item' }, h('b', {}, m.gioco), h('span', {}, `${m.pt > 0 ? '+' + m.pt : m.pt} a ${m.chi.join(', ')} · segnati da ${m.da}`))),
+      ...auto.map(a => h('div', { class: 'item' }, h('b', {}, a.gioco), h('span', {}, Object.entries(a.punti).map(([n, k]) => n + ' +' + k).join(', ') || 'nessun punto'))))));
+  return out;
 }
 
 function screenSetup() {
