@@ -410,7 +410,7 @@ function screenNarratore() {
   if (O.carattere) out.push(boxCarattere(O.carattere, 'Come interpreti Ottavio'));
   out.push(boxCartellino('ottavio', O.name, 'Maestro orafo', null, 'Anche tu hai il cartellino da stampare. Se stampi per tutti, il PDF unico qui sotto ha i cartellini di ogni personaggio, al maschile e al femminile.'));
   out.push(h('a', { class: 'btn ghost big', href: PDF_TUTTI, download: '', style: 'text-align:center;text-decoration:none' }, 'PDF con tutti i cartellini (A4, 4 per pagina)'));
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Il discorso di Ottavio · verso le 19:15'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Il discorso di Ottavio · verso le 19:25'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Una battuta per ogni ospite'), h('p', { class: 'small' }, 'Dille durante l’aperitivo, a ciascuno: lì per lì non significano niente, si capiscono dopo.'),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), genere(O.lines[a.c] || '', x.sesso, a.c))); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
