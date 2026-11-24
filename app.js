@@ -991,9 +991,6 @@ function screenAttesa() {
       h('h2', {}, 'Si apre giovedì 17 dicembre alle 9:00'),
       contoBox(),
       h('p', { class: 'sub' }, 'Quel giorno scopri chi sei nel giallo del 31: due settimane per pensare a un outfit adatto al personaggio.')),
-    h('div', { class: 'box' }, h('h3', {}, 'Cosa trovi all’apertura'),
-      h('div', { class: 'list' }, [['Il giallo', 'il tuo personaggio, con nome, ritratto e ruolo'], ['Cena dei mondi', 'la tua squadra e il tuo piatto'], ['Oscar', 'le categorie e il voto della serata'], ['Giochi', 'impostore, lupus, Parole vietate e il torneo']].slice(0, SOLO ? 1 : 4)
-        .map(([a, b]) => h('div', { class: 'item' }, h('b', {}, a), h('span', {}, b))))),
     h('div', { class: 'box' }, h('h3', {}, 'Avvisami'), boxNotifiche())];
 }
 // all'apertura il primo telefono che si collega assegna i personaggi (stessa assegnazione fissa della regia)
