@@ -140,7 +140,7 @@ export function tally(ballots, catId) {
 // Personaggi del giallo: si assegnano nell'ordine di importanza per la trama,
 // così con meno di 13 persone restano comunque tutti gli indizi decisivi.
 // Cast deciso da Marco (23/11): chi è in questa lista riceve sempre quel personaggio; gli altri a caso.
-export const CAST = { Ugi: 'moretti', Marco: 'cantu', Isa: 'bellini', Lollot: 'cugino', Saolo: 'erede', Melvin: 'dellavalle', Clelia: 'bassi' };
+export const CAST = { Ugi: 'moretti', Marco: 'cantu', Isa: 'bellini', Lollot: 'cugino', Saolo: 'erede', Melvin: 'dellavalle', Clelia: 'rinaldi' };
 export function assignCharacters(people, order, narrator, rnd = Math.random) {
   const ppl = people.filter(p => p !== narrator);
   const fissi = ppl.filter(p => CAST[p] && order.includes(CAST[p])).map(p => ({ p, c: CAST[p] }));
