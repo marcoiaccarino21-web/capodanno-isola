@@ -394,7 +394,7 @@ function boxCartina() {
 function boxStanze() {
   // solo per il narratore: i giocatori scoprono le stanze dal vivo, con la cartina e gli oggetti
   return h('div', { class: 'box' }, h('h3', {}, 'Le stanze della villa'),
-    h('div', { class: 'list' }, GIALLO.rooms.map(x => h('div', { class: 'item' }, h('b', {}, x.name + ' · giro ' + x.round), h('span', {}, altri(x.text))))));
+    h('div', { class: 'list' }, GIALLO.rooms.map(x => h('div', { class: 'item' }, h('b', {}, x.name + ' · giro ' + x.round), h('span', { style: 'display:flex;flex-direction:column;gap:4px' }, x.porta ? h('strong', {}, 'Porta chiusa · si apre con: ' + x.porta.soluzione) : null, altri(x.text))))));
 }
 function screenNarratore() {
   const g = state.giallo; const out = [];
