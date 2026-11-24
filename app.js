@@ -12,7 +12,7 @@ import { NOMI, caricaRitratti } from './ritratti.js';
 import { ACCESSORI, cartellino, pdfDi, PDF_TUTTI } from './accessori.js';
 
 /* ---------- stato ---------- */
-const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null, allarme: null };
+const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null, allarme: null, via: null };
 let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], nominated: [], revealedAt: {}, presenter: null, presenterMode: 'staffetta', giallo: NO_GIALLO, tavola: null, gioco: null, assassino: null, torneo: {} };
 let RITRATTI = {};
 caricaRitratti().then(r => { RITRATTI = r; render(); }).catch(() => {});
@@ -308,7 +308,7 @@ function screenGiallo() {
   const g = state.giallo; const out = [];
   // prima del ritrovamento i giocatori non sanno ancora che Ottavio morirà
   const morto = !!g.call || g.round > 0;
-  const prologo = GIALLO.setting.split(' Alle 19:30')[0];
+  const prologo = GIALLO.setting.split(' Dopo il brindisi')[0];
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, altri(morto ? GIALLO.setting : prologo))));
   if (!g.assign.length) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei. Il resto lo scoprirai durante la serata.')));
@@ -327,10 +327,13 @@ function screenGiallo() {
       h('p', {}, 'Quando trovi il maestro, premi qui e grida: «Il maestro è morto!»'),
       h('button', { class: 'btn big', onclick: () => patch({ giallo: { ...state.giallo, allarme: { at: Date.now() } } }) }, 'Allarme!')));
     if (!morto) out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Goditi l’aperitivo nei panni del tuo personaggio. Il resto arriva sul telefono durante la serata.')));
+    if (mosseAttive(g) && GIALLO.mosse[c.id]) out.push(boxMosse(c.id));
+    else if (!morto && g.round === 0 && !g.via) out.push(h('div', { class: 'box gold' }, h('h3', {}, 'L’ora che conta'),
+      h('p', {}, 'Fino al discorso del maestro vale l’ora vera. Dal discorso in poi guarda solo il telefono: quando il maestro dà il via, qui parte l’orologio della villa (dalle 19:20, a metà velocità) e ti avvisa quando tocca a te.')));
     if (!morto && g.task && g.task.to === me) out.push(h('div', { class: 'box' }, h('h3', {}, 'La tua missione · non mostrarla'), h('div', { class: 'sub' }, passiMissione())));
     else {
       out.push(h('div', { class: 'box reveal' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
-        c.where ? h('h3', {}, 'Dove eri davvero · 19:25–19:35') : null, c.where ? h('p', {}, genere(c.where, x.sesso, c.id)) : null,
+        c.where ? h('h3', {}, 'Dove eri davvero · 19:20–19:35') : null, c.where ? h('p', {}, genere(c.where, x.sesso, c.id)) : null,
         h('h3', {}, 'Il tuo obiettivo'), h('p', {}, genere(c.goal, x.sesso, c.id))));
       const sbloccati = c.clues.slice(0, g.round);
       if (sbloccati.length) out.push(h('div', { class: 'box' }, h('h3', {}, sbloccati.length === 1 ? 'Il tuo indizio' : 'I tuoi indizi'),
@@ -403,10 +406,11 @@ function screenNarratore() {
     h('p', { style: 'font-size:16px;font-weight:600' }, 'Il tuo cartellino: ' + ACCESSORI.ottavio.cosa),
     h('p', {}, 'Nel prologo sei vivo: accogli gli ospiti, brindi e muori. Poi torni come fantasma e guidi la serata. Giri, accuse e soluzione si comandano dalla Regia.'),
     admin ? h('button', { class: 'btn', onclick: () => go('regia') }, 'Vai alla Regia') : null));
+  if (mosseAttive(g)) out.push(boxMosse('ottavio'));
   if (O.carattere) out.push(boxCarattere(O.carattere, 'Come interpreti Ottavio'));
   out.push(boxCartellino('ottavio', O.name, 'Maestro orafo', null, 'Anche tu hai il cartellino da stampare. Se stampi per tutti, il PDF unico qui sotto ha i cartellini di ogni personaggio, al maschile e al femminile.'));
   out.push(h('a', { class: 'btn ghost big', href: PDF_TUTTI, download: '', style: 'text-align:center;text-decoration:none' }, 'PDF con tutti i cartellini (A4, 4 per pagina)'));
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Il brindisi di Ottavio · verso le 19:10'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Il discorso di Ottavio · verso le 19:25'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Una battuta per ogni ospite'), h('p', { class: 'small' }, 'Dille durante l’aperitivo, a ciascuno: lì per lì non significano niente, si capiscono dopo.'),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), genere(O.lines[a.c] || '', x.sesso, a.c))); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
@@ -517,6 +521,13 @@ function screenRegia() {
   const killer = g.assign.find(a => a.c === GIALLO.culprit);
   if (killer && g.round === 0 && !g.call) gBtns.push(h('button', { class: g.task ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, task: { to: killer.p, at: Date.now() } } }) },
     g.task ? 'Rimanda la missione a ' + killer.p : 'Manda ' + killer.p + ' a svuotare la boccetta'));
+  const ugiPronta = !killer || (g.task && g.task.done);
+  if (g.assign.length && g.round === 0 && !g.allarme && !g.via && !ugiPronta && confirm !== 'gvia') gBtns.push(
+    h('button', { class: 'btn', disabled: true }, g.task ? 'Via! · aspetta che ' + killer.p + ' prema «Fatto»' : 'Via! · prima manda ' + killer.p + ' a svuotare la boccetta'),
+    h('button', { class: 'btn ghost', onclick: () => { confirm = 'gvia'; render(); } }, 'Via lo stesso'));
+  else if (g.assign.length && g.round === 0 && !g.allarme) gBtns.push(confirm === 'gvia'
+    ? h('button', { class: 'btn', onclick: () => { confirm = null; patch({ giallo: { ...g, via: Date.now() } }); } }, g.via ? 'Sì, riparti dalle 19:20' : 'Sì, via!')
+    : h('button', { class: g.via ? 'btn ghost' : 'btn', onclick: () => { confirm = 'gvia'; render(); } }, g.via ? 'Orologio della villa: ' + oraVilla(g) + ' · riparti da capo' : 'Via! Partono le mosse'));
   if (g.assign.length && g.round < 3) gBtns.push(h('button', { class: g.round === 0 ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, round: g.round + 1 } }) }, 'Sblocca il giro ' + (g.round + 1)));
   if (g.round === 3 && !g.accuse) gBtns.push(h('button', { class: 'btn', onclick: () => patch({ giallo: { ...g, accuse: true } }) }, 'Apri le accuse'));
   if (g.accuse && !g.solved) gBtns.push(confirm === 'gsolve'
@@ -943,14 +954,60 @@ function render() {
   showCall();
   showTelefonata();
   showMissione();
+  showMossa();
   showTavola();
   showAllarme();
 }
+// orologio della villa: parte col «Via!» alle 19:20 e va a metà velocità (1 minuto della villa = 2 minuti veri)
+function mosseAttive(g) { return !!(g && g.via && g.round === 0 && !g.allarme); }
+function minVilla(g) { return 20 + Math.floor(Math.max(0, Date.now() - g.via) / 120000); }
+function oraVilla(g) { return '19:' + String(Math.min(59, minVilla(g))).padStart(2, '0'); }
+function mioIdMosse() {
+  const g = state.giallo; if (!me || !g) return null;
+  if (me === g.narrator) return 'ottavio';
+  const a = g.assign.find(x => x.p === me); return a && GIALLO.mosse[a.c] ? a.c : null;
+}
+function testoMossa(id, t) { if (id === 'ottavio') return altri(t); const a = state.giallo.assign.find(x => x.c === id); return a ? genere(t, pers(a).sesso, id) : t; }
+function boxMosse(id) {
+  const g = state.giallo; const now = minVilla(g); const M = GIALLO.mosse[id];
+  const next = M.findIndex(([m]) => m > now); const cur = next === -1 ? M.length - 1 : next - 1;
+  return h('div', { class: 'box gold', id: 'mosse-box' }, h('h3', {}, 'Orologio della villa'),
+    h('p', { class: 'big-dish', style: 'font-variant-numeric:tabular-nums' }, oraVilla(g)),
+    h('p', { class: 'small' }, 'Va a metà velocità: un minuto della villa sono due minuti veri. Gli orari sono quelli della tua busta; quando tocca a te il telefono ti avvisa.'),
+    h('div', { class: 'list' }, M.map(([m, t], i) => h('div', { class: 'item', style: i < cur ? 'opacity:.45' : i === cur ? 'border-left:3px solid #D9A93E;padding-left:8px' : '' },
+      h('b', {}, '19:' + String(m).padStart(2, '0')), h('span', {}, testoMossa(id, t))))));
+}
+function showMossa() {
+  const g = state.giallo; const old = document.getElementById('mossa');
+  const id = mosseAttive(g) && mioIdMosse();
+  const M = id && GIALLO.mosse[id]; const now = id ? minVilla(g) : 0;
+  const due = M ? M.filter(([m]) => m <= now).pop() : null;
+  const key = due && 'mossa:' + g.via + ':' + due[0];
+  if (!due || load(key) || document.getElementById('chiamata') || document.getElementById('missione')) { old?.remove(); return; }
+  if (old && old.dataset.k === key) return;
+  old?.remove();
+  const ok = () => { M.filter(([m]) => m <= due[0]).forEach(([m]) => save('mossa:' + g.via + ':' + m, '1')); document.getElementById('mossa')?.remove(); render(); };
+  const el = h('div', { id: 'mossa', 'data-k': key, role: 'alertdialog', style: 'position:fixed;inset:0;z-index:44;background:#171C36;display:flex;align-items:flex-start;overflow-y:auto;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px;margin:auto 0' },
+      h('p', { class: 'eyebrow' }, 'Orologio della villa · solo per te'),
+      h('h1', {}, 'Sono le ', h('em', {}, '19:' + String(due[0]).padStart(2, '0'))),
+      h('p', { style: 'font-size:19px;line-height:1.5' }, testoMossa(id, due[1])),
+      h('button', { class: 'btn big', onclick: ok }, 'Ok, vado')));
+  document.body.append(el);
+  try { navigator.vibrate && navigator.vibrate([200, 100, 200, 100, 200]); } catch {}
+}
+// aggiorna orologio e avvisi senza ridisegnare tutto (così non si chiudono menu e campi aperti)
+setInterval(() => {
+  const g = state.giallo; if (!mosseAttive(g)) { document.getElementById('mossa')?.remove(); return; }
+  const box = document.getElementById('mosse-box'); const id = mioIdMosse();
+  if (box && id) box.replaceWith(boxMosse(id));
+  showMossa();
+}, 2000);
 // avviso privato al colpevole durante l'aperitivo: non gli dice ancora che è il colpevole
 function passiMissione() {
   return h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
         h('li', {}, 'Adesso: nell’ingresso, sulla poltrona, c’è la borsa del medico. Senza farti vedere, svuota la boccetta nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa. Poi torna in salotto.'),
-        h('li', {}, '19:23: vai nel bagno della zona notte (oltre la porta scorrevole) e aspetta. Alle 19:25 suona il campanello: aspetta di sentir chiudere la porta di casa e poi quella del salotto.'),
+        h('li', {}, 'Quando Ottavio dà il via parte l’orologio della villa sul telefono: ti avvisa a ogni ora qui sotto. 19:23: vai nel bagno della zona notte (oltre la porta scorrevole) e aspetta. Verso le 19:25 suona il campanello: aspetta di sentir chiudere la porta di casa e poi quella del salotto.'),
         h('li', {}, '19:26: esci, versa la fialetta nel bicchierino sul vassoio in cima alle scale e torna subito nella zona notte.'),
         h('li', {}, '19:27: chiuditi nello sgabuzzino, nascondi la fialetta e aspetta al buio, senza farti sentire.'),
         h('li', {}, '19:34: scendi nello studio (il maestro sarà già «morto»), prendi la Stella, lascia la vetrina aperta e torna nello sgabuzzino.'),
@@ -961,12 +1018,12 @@ function showMissione() {
   const due = g && g.task && g.task.to === me && !g.call && g.round === 0 && load('task') !== String(g.task.at) && !document.getElementById('chiamata');
   if (!due) { old?.remove(); return; }
   if (old) return;
-  const el = h('div', { id: 'missione', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:45;background:#171C36;display:flex;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
-    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
+  const el = h('div', { id: 'missione', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:45;background:#171C36;display:flex;align-items:flex-start;overflow-y:auto;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px;margin:auto 0' },
       h('p', { class: 'eyebrow' }, 'Solo per te · non dirlo a nessuno'),
       h('h1', {}, 'Una ', h('em', {}, 'missione')),
       h('div', { style: 'font-size:18px;line-height:1.45' }, passiMissione()),
-      h('button', { class: 'btn big', onclick: () => { save('task', String(g.task.at)); document.getElementById('missione')?.remove(); } }, 'Fatto, chiudi')));
+      h('button', { class: 'btn big', onclick: () => { save('task', String(g.task.at)); document.getElementById('missione')?.remove(); patch({ giallo: { ...state.giallo, task: { ...state.giallo.task, done: Date.now() } } }); } }, 'Fatto: boccetta svuotata, sono in salotto')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch {}
 }
