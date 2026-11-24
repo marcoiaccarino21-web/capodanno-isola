@@ -918,6 +918,25 @@ function screenRegoleBarcellona() {
     h('button', { class: 'btn big', onclick: () => { regoleBar = false; render(); } }, 'Torna ai giochi')];
 }
 
+/* ---------- installa come app ---------- */
+// Android/Chrome: il browser offre l'installazione e noi mostriamo il bottone. iPhone: si fa da Condividi.
+var richiestaInstalla = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); richiestaInstalla = e; render(); });
+addEventListener('appinstalled', () => { richiestaInstalla = null; save('installa', 'fatto'); render(); });
+function boxInstalla() {
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (standalone || load('installa') || tab === 'regia') return null;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const istruzioni = ios ? 'In Safari tocca Condividi (il quadrato con la freccia in su), poi «Aggiungi alla schermata Home».'
+    : 'Dal menu del browser (i tre puntini in alto) scegli «Installa app» o «Aggiungi a schermata Home».';
+  return h('div', { class: 'box' }, h('h3', {}, 'Mettila sul telefono'),
+    h('p', { class: 'sub' }, 'Installala come un’app: si apre a schermo intero dall’icona, senza cercare il link.'),
+    richiestaInstalla ? null : h('p', { class: 'small' }, istruzioni),
+    h('div', { class: 'row' },
+      richiestaInstalla ? h('button', { class: 'btn', style: 'flex:2', onclick: async () => { const r = richiestaInstalla; richiestaInstalla = null; r.prompt(); try { if ((await r.userChoice).outcome === 'accepted') save('installa', 'fatto'); } catch {} render(); } }, 'Installa') : null,
+      h('button', { class: 'btn ghost', style: 'flex:1', onclick: () => { save('installa', 'no'); render(); } }, richiestaInstalla ? 'Non ora' : 'Ok, chiudi')));
+}
+
 /* ---------- impaginazione ---------- */
 function render() {
   const app = document.getElementById('app'); const nav = document.getElementById('tabs');
@@ -931,6 +950,7 @@ function render() {
   else if (SOLO && !['chi', 'giallo', 'regia'].includes(tab)) { tab = me ? 'giallo' : 'chi'; body = me ? screenGiallo() : screenChi(); }
   else if (tab === 'chi' || (!me && tab !== 'regia')) body = screenChi();
   else body = { squadra: screenSquadra, giallo: screenGiallo, oscar: screenOscar, giochi: screenGiochi, regia: screenRegia }[tab]();
+  if (configured && loaded) { const bi = boxInstalla(); if (bi) body = [bi, ...body]; }
   const foot = !admin && tab !== 'regia' && configured ? h('button', { class: 'btn ghost', style: 'align-self:center;font-size:13px;min-height:36px;padding:6px 14px;opacity:.7', onclick: () => go('regia') }, 'Area organizzatore') : null;
   app.replaceChildren(...[head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body, foot].filter(Boolean));
   // barra in basso
