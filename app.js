@@ -940,25 +940,25 @@ function boxInstalla() {
 
 // consigli per l'outfit della sera del 31 (la villa è nel 1989): [maschio, femmina]
 const OUTFIT = {
-  moretti: ['Camicia chiara con le maniche arrotolate, gilet scuro, pantaloni di velluto. Una lente da orafo o un metro in tasca.', 'Camicetta chiara con le maniche arrotolate, gonna o pantaloni scuri, capelli raccolti. Una lente da orafo o un metro in tasca.'],
-  cantu: ['Grembiule bianco sopra camicia e pantaloni scuri, un canovaccio sulla spalla. Se l’hai, un cappello da cuoco.', 'Grembiule bianco sopra un vestito semplice, un canovaccio sulla spalla, capelli raccolti. Se l’hai, un cappello da cuoca.'],
-  bellini: ['Completo grigio, camicia bianca, cravatta sottile. Agenda, penna e occhiali in mano tutta sera.', 'Tailleur con le spalline, camicetta, collant. Agenda, penna e occhiali in mano tutta sera.'],
-  cugino: ['Americano anni 80: giacca colorata o di jeans, camicia hawaiana o cravatta vistosa, occhiali da sole, sigaro finto.', 'Americana anni 80: colori accesi, spalline enormi, capelli cotonati, occhiali da sole e orecchini grandi.'],
-  erede: ['Elegante da rampollo: giacca blu coi bottoni dorati, foulard o cravatta, capelli col gel. Sicuro di sé.', 'Elegante da rampolla: abito da sera, perle, guanti o una stola. Sicura di sé.'],
-  dellavalle: ['Smoking o completo scuro, papillon, fazzoletto nel taschino e un anello vistoso. Portamento da nobile.', 'Abito lungo scuro, gioielli importanti, stola o pelliccia finta. Portamento da nobile.'],
-  rinaldi: ['Completo marrone o grigio, gilet, occhiali, una borsa da medico (va bene anche una borsa di pelle) e lo stetoscopio se ce l’hai.', 'Tailleur sobrio, occhiali, una borsa da medico (va bene anche una borsa di pelle) e lo stetoscopio se ce l’hai.'],
-  pozzi: ['Gilet o maglione da lavoro, coppola, guanti da giardino in tasca.', 'Gilet o maglione da lavoro, foulard in testa, guanti da giardino in tasca.'],
-  sardi: ['Trench o giacca stropicciata, taccuino, penna dietro l’orecchio, macchina fotografica al collo se l’hai.', 'Trench o giacca, taccuino, penna dietro l’orecchio, macchina fotografica al collo se l’hai.'],
-  bonetti: ['Giacca luccicante o di raso, camicia aperta, capelli col gel: cantante da orchestra di Capodanno.', 'Vestito di paillettes, boa di piume, rossetto rosso: cantante da orchestra di Capodanno.'],
-  ferrero: ['Completo gessato, cravatta, cartellina di documenti sotto il braccio.', 'Tailleur scuro, camicetta col fiocco, cartellina di documenti sotto il braccio.'],
-  gatti: ['Gilet con tante tasche, macchina fotografica al collo, aria da artista.', 'Gilet con tante tasche, macchina fotografica al collo, aria da artista.'],
-  bassi: ['Completo scuro e una fascia tricolore a tracolla: sei il sindaco.', 'Tailleur scuro e una fascia tricolore a tracolla: sei la sindaca.']
+  moretti: ['Camicia chiara con le maniche arrotolate, gilet o maglione scuro, pantaloni scuri. Una penna nel taschino.', 'Camicetta chiara con le maniche arrotolate, gonna o pantaloni scuri, capelli raccolti. Una penna nel taschino.'],
+  cantu: ['Camicia bianca e pantaloni scuri, un grembiule da cucina e uno strofinaccio sulla spalla.', 'Maglia o camicetta bianca e pantaloni scuri, un grembiule da cucina e uno strofinaccio sulla spalla, capelli raccolti.'],
+  bellini: ['Camicia bianca, cravatta, pantaloni eleganti. Un’agenda o un quaderno sempre in mano e una penna.', 'Camicetta, gonna o pantaloni eleganti, capelli in ordine. Un’agenda o un quaderno sempre in mano e una penna.'],
+  cugino: ['Jeans, camicia a quadri o colorata, giacca di jeans o di pelle se ce l’hai, occhiali da sole.', 'Jeans, camicia colorata o di jeans, orecchini grandi, capelli voluminosi, occhiali da sole.'],
+  erede: ['Il tuo vestito più elegante: giacca scura, camicia bianca, sciarpa o cravatta, capelli col gel. Occhiali da sole.', 'Il tuo vestito più elegante, collana o perle, una sciarpa sulle spalle. Occhiali da sole.'],
+  dellavalle: ['Abito scuro, camicia bianca, cravatta o papillon, tutti gli anelli e l’orologio più vistoso che hai.', 'Vestito lungo o nero elegante, tutti i gioielli che hai, una sciarpa o uno scialle sulle spalle.'],
+  rinaldi: ['Camicia, maglione con lo scollo a V o gilet, pantaloni scuri, occhiali. Una borsa o una cartella di pelle.', 'Camicetta e maglioncino o giacca, pantaloni o gonna sobri, occhiali. Una borsa o una cartella di pelle.'],
+  pozzi: ['Maglione pesante o camicia di flanella, pantaloni da lavoro, un berretto o un cappello.', 'Maglione pesante o camicia di flanella, pantaloni da lavoro, un fazzoletto in testa.'],
+  sardi: ['Giacca o cappotto lungo, camicia stropicciata, un taccuino e una penna dietro l’orecchio.', 'Giacca o cappotto lungo, maglione, un taccuino e una penna dietro l’orecchio.'],
+  bonetti: ['Camicia lucida o colorata aperta sul collo, giacca scura, capelli col gel.', 'Il vestito più luccicante che hai, rossetto rosso, orecchini grandi.'],
+  ferrero: ['Abito scuro e cravatta, una cartellina di fogli sotto il braccio.', 'Giacca e pantaloni o gonna scuri, camicetta, una cartellina di fogli sotto il braccio.'],
+  gatti: ['Vestiti scuri e comodi, un gilet o una giacca con tante tasche, il telefono in mano come macchina fotografica.', 'Vestiti scuri e comodi, un gilet o una giacca con tante tasche, il telefono in mano come macchina fotografica.'],
+  bassi: ['Abito scuro e cravatta, una sciarpa bianca, rossa o verde a tracolla come fascia da sindaco.', 'Giacca scura e camicetta, una sciarpa bianca, rossa o verde a tracolla come fascia da sindaca.']
 };
 function boxOutfit(id, sesso) {
   const o = OUTFIT[id]; if (!o) return null;
   return h('div', { class: 'box' }, h('h3', {}, 'Consigli per l’outfit · sera del 31'),
     h('p', {}, o[sesso === 'F' ? 1 : 0]),
-    h('p', { class: 'small' }, 'Siamo nel 1989: basta un dettaglio giusto, non serve un costume.'));
+    h('p', { class: 'small' }, 'Basta quello che hai già nell’armadio: niente da comprare.'));
 }
 /* ---------- app chiusa fino all'apertura ---------- */
 // giovedì 17 dicembre 2026 alle 9:00 ora italiana (UTC+1): due settimane prima del giallo, per pensare all'outfit
@@ -1020,7 +1020,7 @@ function showRivela() {
       h('h1', {}, 'Sei ', h('em', {}, x.name)),
       h('p', { style: 'font-size:19px;line-height:1.5' }, x.role),
       OUTFIT[a.c] ? h('div', { class: 'box', style: 'text-align:left' }, h('h3', {}, 'Come vestirti la sera del 31'), h('p', {}, OUTFIT[a.c][x.sesso === 'F' ? 1 : 0]),
-        h('p', { class: 'small' }, 'Hai due settimane. Siamo nel 1989: basta un dettaglio giusto, non serve un costume.')) : null,
+        h('p', { class: 'small' }, 'Hai due settimane. Basta quello che hai già nell’armadio: niente da comprare.')) : null,
       h('p', { class: 'sub' }, 'Il consiglio resta nella scheda Giallo. Il resto lo scopri la sera del 31.'),
       h('button', { class: 'btn big', onclick: ok }, 'Vedi la mia scheda')));
   document.body.append(el);
