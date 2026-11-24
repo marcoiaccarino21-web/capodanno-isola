@@ -315,6 +315,7 @@ function screenGiallo() {
       h('p', {}, genere(c.intro, x.sesso, c.id)),
       h('p', { style: 'font-size:15px;font-weight:600' }, 'Porta a tracolla il cartellino che ti ha dato Ottavio. Scheda segreta della busta e telefono: non farli vedere a nessuno.')));
     if (c.carattere) out.push(boxCarattere(c.carattere));
+    if (!morto) { const bo = boxOutfit(c.id, x.sesso); if (bo) out.push(bo); }
     if (g.call && g.call.to === me && !g.allarme && g.round === 0) out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Nello studio'),
       h('p', {}, 'Quando trovi il maestro, premi qui e grida: «Il maestro è morto!»'),
       h('button', { class: 'btn big', onclick: () => patch({ giallo: { ...state.giallo, allarme: { at: Date.now() } } }) }, 'Allarme!')));
@@ -527,7 +528,7 @@ function screenRegia() {
   const mancanoG = g.assign.filter(a => !accused.has(slug(a.p))).map(a => a.p);
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto'),
     !me ? h('p', { class: 'small' }, 'Prima scegli il tuo nome in “Chi sei?”: sarai il narratore e non riceverai un personaggio.') : null,
-    h('p', { class: 'sub' }, !g.assign.length ? `Assegna i personaggi una settimana prima. Tu sei il narratore; per gli altri ${Math.max(0, state.people.length - (me ? 1 : 0))} servono ${Math.min(Math.max(0, state.people.length - (me ? 1 : 0)), GIALLO.order.length)} personaggi su ${GIALLO.order.length}.`
+    h('p', { class: 'sub' }, !g.assign.length ? `Si assegnano da soli giovedì 17 dicembre alle 9:00, quando si apre l’app; puoi anche farlo prima da qui. Tu sei il narratore; per gli altri ${Math.max(0, state.people.length - (me ? 1 : 0))} servono ${Math.min(Math.max(0, state.people.length - (me ? 1 : 0)), GIALLO.order.length)} personaggi su ${GIALLO.order.length}.`
       : g.solved ? 'Soluzione rivelata.' : g.accuse ? `Accuse: ${accuse.length} su ${g.assign.length}.` : g.round ? `Giro ${g.round} di 3 sbloccato.` : `${g.assign.length} personaggi assegnati: ognuno vede il suo nell’app.`),
     g.accuse && !g.solved && mancanoG.length ? h('p', { class: 'small' }, 'Mancano: ' + mancanoG.join(', ')) : null,
     g.assign.length ? h('p', { class: 'small' }, 'Narratore: ' + (g.narrator || '—') + '. La sera della cena segui il copione nella scheda Giallo e sblocca un giro a ogni portata.') : null,
@@ -937,6 +938,28 @@ function boxInstalla() {
       h('button', { class: 'btn ghost', style: 'flex:1', onclick: () => { save('installa', 'no'); render(); } }, richiestaInstalla ? 'Non ora' : 'Ok, chiudi')));
 }
 
+// consigli per l'outfit della sera del 31 (la villa è nel 1989): [maschio, femmina]
+const OUTFIT = {
+  moretti: ['Camicia chiara con le maniche arrotolate, gilet scuro, pantaloni di velluto. Una lente da orafo o un metro in tasca.', 'Camicetta chiara con le maniche arrotolate, gonna o pantaloni scuri, capelli raccolti. Una lente da orafo o un metro in tasca.'],
+  cantu: ['Grembiule bianco sopra camicia e pantaloni scuri, un canovaccio sulla spalla. Se l’hai, un cappello da cuoco.', 'Grembiule bianco sopra un vestito semplice, un canovaccio sulla spalla, capelli raccolti. Se l’hai, un cappello da cuoca.'],
+  bellini: ['Completo grigio, camicia bianca, cravatta sottile. Agenda, penna e occhiali in mano tutta sera.', 'Tailleur con le spalline, camicetta, collant. Agenda, penna e occhiali in mano tutta sera.'],
+  cugino: ['Americano anni 80: giacca colorata o di jeans, camicia hawaiana o cravatta vistosa, occhiali da sole, sigaro finto.', 'Americana anni 80: colori accesi, spalline enormi, capelli cotonati, occhiali da sole e orecchini grandi.'],
+  erede: ['Elegante da rampollo: giacca blu coi bottoni dorati, foulard o cravatta, capelli col gel. Sicuro di sé.', 'Elegante da rampolla: abito da sera, perle, guanti o una stola. Sicura di sé.'],
+  dellavalle: ['Smoking o completo scuro, papillon, fazzoletto nel taschino e un anello vistoso. Portamento da nobile.', 'Abito lungo scuro, gioielli importanti, stola o pelliccia finta. Portamento da nobile.'],
+  rinaldi: ['Completo marrone o grigio, gilet, occhiali, una borsa da medico (va bene anche una borsa di pelle) e lo stetoscopio se ce l’hai.', 'Tailleur sobrio, occhiali, una borsa da medico (va bene anche una borsa di pelle) e lo stetoscopio se ce l’hai.'],
+  pozzi: ['Gilet o maglione da lavoro, coppola, guanti da giardino in tasca.', 'Gilet o maglione da lavoro, foulard in testa, guanti da giardino in tasca.'],
+  sardi: ['Trench o giacca stropicciata, taccuino, penna dietro l’orecchio, macchina fotografica al collo se l’hai.', 'Trench o giacca, taccuino, penna dietro l’orecchio, macchina fotografica al collo se l’hai.'],
+  bonetti: ['Giacca luccicante o di raso, camicia aperta, capelli col gel: cantante da orchestra di Capodanno.', 'Vestito di paillettes, boa di piume, rossetto rosso: cantante da orchestra di Capodanno.'],
+  ferrero: ['Completo gessato, cravatta, cartellina di documenti sotto il braccio.', 'Tailleur scuro, camicetta col fiocco, cartellina di documenti sotto il braccio.'],
+  gatti: ['Gilet con tante tasche, macchina fotografica al collo, aria da artista.', 'Gilet con tante tasche, macchina fotografica al collo, aria da artista.'],
+  bassi: ['Completo scuro e una fascia tricolore a tracolla: sei il sindaco.', 'Tailleur scuro e una fascia tricolore a tracolla: sei la sindaca.']
+};
+function boxOutfit(id, sesso) {
+  const o = OUTFIT[id]; if (!o) return null;
+  return h('div', { class: 'box' }, h('h3', {}, 'Consigli per l’outfit · sera del 31'),
+    h('p', {}, o[sesso === 'F' ? 1 : 0]),
+    h('p', { class: 'small' }, 'Siamo nel 1989: basta un dettaglio giusto, non serve un costume.'));
+}
 /* ---------- app chiusa fino all'apertura ---------- */
 // giovedì 17 dicembre 2026 alle 9:00 ora italiana (UTC+1): due settimane prima del giallo, per pensare all'outfit
 const APERTURA = Date.UTC(2026, 11, 17, 8, 0);
@@ -996,7 +1019,7 @@ function showRivela() {
       ritratto(x.key),
       h('h1', {}, 'Sei ', h('em', {}, x.name)),
       h('p', { style: 'font-size:19px;line-height:1.5' }, x.role),
-      h('p', { class: 'sub' }, 'Hai due settimane per l’outfit. Il resto lo scopri nella scheda Giallo e la sera del 31.'),
+      h('p', { class: 'sub' }, 'Hai due settimane per l’outfit: nella scheda Giallo trovi qualche consiglio. Il resto lo scopri la sera del 31.'),
       h('button', { class: 'btn big', onclick: ok }, 'Vedi la mia scheda')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([300, 120, 300, 120, 500]); } catch {}
