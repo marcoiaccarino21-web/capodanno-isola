@@ -1019,7 +1019,9 @@ function showRivela() {
       ritratto(x.key),
       h('h1', {}, 'Sei ', h('em', {}, x.name)),
       h('p', { style: 'font-size:19px;line-height:1.5' }, x.role),
-      h('p', { class: 'sub' }, 'Hai due settimane per l’outfit: nella scheda Giallo trovi qualche consiglio. Il resto lo scopri la sera del 31.'),
+      OUTFIT[a.c] ? h('div', { class: 'box', style: 'text-align:left' }, h('h3', {}, 'Come vestirti la sera del 31'), h('p', {}, OUTFIT[a.c][x.sesso === 'F' ? 1 : 0]),
+        h('p', { class: 'small' }, 'Hai due settimane. Siamo nel 1989: basta un dettaglio giusto, non serve un costume.')) : null,
+      h('p', { class: 'sub' }, 'Il consiglio resta nella scheda Giallo. Il resto lo scopri la sera del 31.'),
       h('button', { class: 'btn big', onclick: ok }, 'Vedi la mia scheda')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([300, 120, 300, 120, 500]); } catch {}
