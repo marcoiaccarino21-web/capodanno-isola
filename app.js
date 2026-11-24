@@ -3,7 +3,7 @@ import { getFirestore, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, DISHES, SPESA, RICETTE, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, nominations, assignCharacters } from './logic.js';
 import { GIALLO, femminile } from './giallo.js';
-import { classifica, puntiImpostore, puntiLupus, puntiGiallo, PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG, nuovoNonHoMai, fraseNonHoMai, nuovoTaboo, spiega, cartaTaboo, puntiTaboo } from './giochi.js';
+import { classifica, puntiImpostore, puntiLupus, puntiGiallo, PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG, nuovoNonHoMai, fraseNonHoMai, nuovoTaboo, spiega, cartaTaboo, puntiTaboo, nuovoBarcellona, giocaBarcellona, jollyBarcellona, prossimoBarcellona } from './giochi.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
 const HOME = SOLO ? 'giallo' : 'squadra';
@@ -621,6 +621,7 @@ function screenGiochi() {
   if (g && g.tipo === 'lupus') return screenLupus(g);
   if (g && g.tipo === 'nonhomai') return screenNonHoMai(g);
   if (g && g.tipo === 'taboo') return screenTaboo(g);
+  if (g && g.tipo === 'barcellona') return screenBarcellona(g);
   if (setup) return screenSetup();
   return [h('div', { class: 'box' }, h('h3', {}, 'Giochi'), h('h2', {}, 'A cosa giochiamo?'),
       h('p', { class: 'sub' }, 'Chiunque può far partire una partita: ognuno gioca dal suo telefono. Una partita alla volta.')),
@@ -630,6 +631,8 @@ function screenGiochi() {
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Lupus in fabula'), h('small', {}, 'Lupi contro villaggio. Di notte i lupi sbranano, di giorno il villaggio vota chi giustiziare. L’app fa da narratore. Da 5 giocatori.')),
     h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'taboo', sel: [...state.people], opz: { durata: 60, obiettivo: 20 } }; render(); } },
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Parole vietate'), h('small', {}, 'Due squadre, a tempo: fai indovinare la parola senza dire le 5 vietate. Chi spiega ha la carta sul telefono, gli avversari controllano. Da 4 giocatori.')),
+    h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'barcellona', sel: [], opz: { regole: '' } }; render(); } },
+      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Il Barcellona'), h('small', {}, 'Gioco alcolico con le carte: chi è di turno dice un numero da 2 a 10, l’app pesca la carta e dice chi beve. Da 3 giocatori.')),
     h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'nonhomai', sel: [...state.people], opz: { mazzo: 'soft' } }; render(); } },
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Non ho mai'), h('small', {}, 'L’app pesca una frase, chi l’ha fatto beve e confessa sul telefono. Versione tranquilla o piccante.')),
     ...boxTorneo()];
@@ -660,14 +663,18 @@ function boxTorneo() {
 }
 
 function screenSetup() {
-  const s = setup; const n = s.sel.length; const lup = s.tipo === 'lupus'; const tab_ = s.tipo === 'taboo'; const nhm = s.tipo === 'nonhomai';
+  const s = setup; const n = s.sel.length; const lup = s.tipo === 'lupus'; const tab_ = s.tipo === 'taboo'; const nhm = s.tipo === 'nonhomai'; const bar = s.tipo === 'barcellona';
   const min = lup ? 5 : tab_ ? 4 : nhm ? 1 : 3;
   const toggle = p => { s.sel = s.sel.includes(p) ? s.sel.filter(x => x !== p) : [...s.sel, p]; render(); };
   const opt = (label, on, fn) => h('button', { class: 'nominee', 'aria-pressed': on ? 'true' : 'false', onclick: () => { fn(); render(); } }, h('span', {}, (on ? '✓ ' : '') + label));
-  const out = [h('div', { class: 'box' }, h('h3', {}, 'Nuova partita'), h('h2', {}, lup ? 'Lupus in fabula' : tab_ ? 'Parole vietate' : nhm ? 'Non ho mai' : 'L’impostore'),
-    h('p', { class: 'sub' }, `Chi gioca? ${n} selezionati.`),
+  const out = [h('div', { class: 'box' }, h('h3', {}, 'Nuova partita'), h('h2', {}, lup ? 'Lupus in fabula' : tab_ ? 'Parole vietate' : nhm ? 'Non ho mai' : bar ? 'Il Barcellona' : 'L’impostore'),
+    h('p', { class: 'sub' }, bar ? `Tocca i nomi nell’ordine in cui siete seduti, girando nel verso del gioco: ${n ? s.sel.map((p, i) => (i + 1) + '. ' + p).join(' · ') : 'nessuno ancora'}.` : `Chi gioca? ${n} selezionati.`),
     h('div', { class: 'names' }, state.people.map(p => h('button', { class: 'nominee', 'aria-pressed': s.sel.includes(p) ? 'true' : 'false', onclick: () => toggle(p) }, h('span', {}, (s.sel.includes(p) ? '✓ ' : '') + p)))))];
-  if (tab_) {
+  if (bar) {
+    const rg = h('textarea', { rows: 3, placeholder: 'Es.: chi dice «bere» beve; con il 7 si brinda al vicino', style: 'width:100%;font:inherit;padding:10px;border-radius:12px' }, s.opz.regole);
+    rg.addEventListener('input', () => { s.opz.regole = rg.value; });
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Regole della casa (facoltative)'), h('p', { class: 'small' }, 'A ogni partita si possono aggiungere regole nuove: scrivile qui e le vedranno tutti.'), rg));
+  } else if (tab_) {
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Regole'), h('p', { class: 'small' }, 'Le squadre le fa l’app a caso, metà e metà.'),
       h('div', { class: 'row' }, h('span', {}, 'Secondi a turno'), ...[45, 60, 90].map(k => h('button', { class: k === s.opz.durata ? 'btn' : 'btn ghost', onclick: () => { s.opz.durata = k; render(); } }, String(k)))),
       h('div', { class: 'row' }, h('span', {}, 'Si vince a'), ...[10, 20, 30].map(k => h('button', { class: k === s.opz.obiettivo ? 'btn' : 'btn ghost', onclick: () => { s.opz.obiettivo = k; render(); } }, String(k))))));
@@ -696,7 +703,7 @@ function screenSetup() {
     h('button', { class: 'btn ghost', style: 'flex:1', onclick: () => { setup = null; render(); } }, 'Indietro'),
     h('button', { class: 'btn', style: 'flex:2', disabled: n < min || !me || null, onclick: () => {
       const players = state.people.filter(p => s.sel.includes(p));
-      const g = tab_ ? nuovoTaboo(players, me, s.opz) : nhm ? nuovoNonHoMai(players, me, s.opz.mazzo) : lup ? nuovoLupus(players, me, { ...s.opz, lupi: s.opz.lupi || lupiConsigliati(players.length) }) : nuovoImpostore(players, me, s.opz, (state.gioco && state.gioco.usate) || []);
+      const g = bar ? nuovoBarcellona(s.sel, me, s.opz) : tab_ ? nuovoTaboo(players, me, s.opz) : nhm ? nuovoNonHoMai(players, me, s.opz.mazzo) : lup ? nuovoLupus(players, me, { ...s.opz, lupi: s.opz.lupi || lupiConsigliati(players.length) }) : nuovoImpostore(players, me, s.opz, (state.gioco && state.gioco.usate) || []);
       setup = null; cartaAperta = false; setGioco(g);
     } }, n < min ? `Servono almeno ${min} giocatori` : 'Inizia la partita')));
   return out;
@@ -857,6 +864,43 @@ function screenTaboo(g) {
       h('p', { class: 'sub' }, g.squadre[g.vince].join(', ') + ` · ${g.punti[g.vince]} a ${g.punti[1 - g.vince]}. Due punti a testa nel torneo.`)));
     out.push(h('button', { class: 'btn big', onclick: () => setGioco(nuovoTaboo(g.players, me, { durata: g.durata, obiettivo: g.obiettivo })) }, 'Rivincita, squadre nuove'));
   }
+  out.push(fineBox(g));
+  return out;
+}
+
+const REGOLE_BARCELLONA = [['Indovinata', 'beve chi è di turno'], ['Una sopra', 'beve il successivo'], ['Una sotto', 'beve il precedente'], ['Fante', 'chi è di turno beve doppio'],
+  ['Donna', 'beve chi ha bevuto per ultimo'], ['Re', 'bevono tutti tranne chi è di turno'], ['Asso', 'bevono tutti'], ['Jolly', 'chi è di turno sceglie chi beve']];
+function cartaGrande(c) {
+  const jolly = c === 'JOKER'; const seme = jolly ? '★' : c.slice(-1); const v = jolly ? 'Jolly' : c.slice(0, -1);
+  const rosso = seme === '♥' || seme === '♦';
+  return h('div', { style: `margin:8px auto;width:150px;height:210px;border-radius:16px;background:#fbf7ee;color:${rosso ? '#c0392b' : jolly ? '#8a5a00' : '#1d1d28'};display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.35);font-family:var(--display)` },
+    h('div', { style: 'font-size:' + (jolly ? '34px' : '64px') + ';line-height:1' }, v), h('div', { style: 'font-size:48px;line-height:1.1' }, seme));
+}
+function screenBarcellona(g) {
+  const out = []; const P = g.players; const io = P[g.turno % P.length]; const m = g.mossa;
+  const nome = p => p + (p === me ? ' (tu)' : '');
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Il Barcellona · mano ' + ((g.mani || 0) + 1) + ' · carte nel mazzo ' + Math.max(0, g.mazzo.length - g.pos)),
+    h('p', { class: 'small' }, 'Bevete responsabilmente: un sorso, non un bicchiere. Chi non beve alcol beve acqua o succo.'),
+    h('ol', { class: 'nomi', style: 'font-size:15px' }, P.map(p => h('li', { class: p === io ? 'mine' : null }, p + (p === io ? ' ← di turno' : ''))))));
+  if (g.fase === 'numero') {
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Tocca a ' + nome(io)), h('h2', {}, 'Dì un numero da 2 a 10'),
+      h('p', { class: 'small' }, 'Lo tocca chi è di turno, o chi ha il telefono in mano per lui.'),
+      h('div', { class: 'row', style: 'flex-wrap:wrap;gap:8px' }, [2, 3, 4, 5, 6, 7, 8, 9, 10].map(k => h('button', { class: 'btn', style: 'min-width:56px', onclick: () => setGioco(giocaBarcellona(state.gioco, k)) }, String(k))))));
+  }
+  if (m) {
+    out.push(h('div', { class: 'envelope current reveal', style: 'text-align:center' }, h('h3', {}, io + ' ha detto ' + m.n), cartaGrande(m.carta),
+      h('p', { class: 'winner', style: 'font-size:24px' }, m.testo),
+      m.chi.length && g.fase === 'carta' ? h('p', { class: 'sub' }, 'Bevono: ' + m.chi.join(', ') + (m.doppio ? ' (doppio)' : '')) : null));
+    if (g.fase === 'jolly') out.push(h('div', { class: 'box' }, h('h3', {}, io + ', chi fai bere?'), nomiBtn(P, null, p => setGioco(jollyBarcellona(state.gioco, p)))));
+    if (g.fase === 'carta') out.push(h('button', { class: 'btn big', onclick: () => setGioco(prossimoBarcellona(state.gioco)) }, 'Prossimo: tocca a ' + P[(g.turno + 1) % P.length]));
+  }
+  if (g.regole) out.push(h('div', { class: 'box' }, h('h3', {}, 'Regole della casa'), h('p', { class: 'sub', style: 'white-space:pre-wrap' }, g.regole)));
+  out.push(h('details', { class: 'box ricetta' }, h('summary', {}, h('h3', {}, 'Cosa fa ogni carta')),
+    h('div', { class: 'list' }, REGOLE_BARCELLONA.map(([a, b]) => h('div', { class: 'item' }, h('b', {}, a), h('span', {}, b)))),
+    h('p', { class: 'small' }, 'Se la carta non è né il numero detto né quella sopra o sotto, non beve nessuno. Finito il mazzo, l’app rimescola.')));
+  const tot = P.map(p => [p, (g.sorsi || {})[slugG(p)] || 0]).sort((a, b) => b[1] - a[1]); const top = tot[0][1];
+  if (top) out.push(h('div', { class: 'box tally' }, h('h3', {}, 'Sorsi finora'), ...tot.map(([p, k]) => h('div', {}, h('span', { class: p === me ? 'mine' : null }, p), h('span', { class: 'count' }, String(k)),
+    h('div', { class: 'bar' }, h('i', { style: `width:${k / top * 100}%` }))))));
   out.push(fineBox(g));
   return out;
 }
