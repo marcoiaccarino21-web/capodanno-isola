@@ -9,7 +9,7 @@ const SOLO = new URLSearchParams(location.search).has('giallo');
 const HOME = SOLO ? 'giallo' : 'squadra';
 if (SOLO) document.title = 'Delitto a Villa Ferraris';
 import { NOMI, caricaRitratti } from './ritratti.js';
-import { ACCESSORI, cartellino, pdfDi, PDF_TUTTI } from './accessori.js';
+import { ACCESSORI, cartellino } from './accessori.js';
 
 /* ---------- stato ---------- */
 const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null, allarme: null, via: null };
@@ -292,15 +292,8 @@ function galleria(list, withNarrator) {
   if (withNarrator && g.narrator) figs.unshift(h('figure', {}, ritratto('ottavio', ' '), h('b', {}, GIALLO.ottavio.name), h('small', {}, 'La vittima · ' + g.narrator)));
   return h('div', { class: 'galleria' }, figs);
 }
-// cartellino di carta da stampare al posto del travestimento
+// i cartellini li stampa il narratore: nell’app non si scaricano
 function svgEl(svg, cls) { const d = h('div', { class: cls }); d.innerHTML = svg; return d; }
-function boxCartellino(id, name, role, sesso, intro) {
-  return h('div', { class: 'box' }, h('h3', {}, 'Il tuo cartellino da stampare'),
-    h('p', { class: 'sub' }, intro || ('Niente travestimento: stampa questo cartellino (' + ACCESSORI[id].cosa.toLowerCase() + '), ritaglialo e portalo a tracolla la sera del 31.')),
-    svgEl(cartellino(id, name, role, 'mio' + id), 'cartellino'),
-    h('a', { class: 'btn big', href: pdfDi(id, sesso), download: '', style: 'text-align:center;text-decoration:none' }, 'Scarica il PDF da stampare'),
-    h('p', { class: 'small' }, 'Stampa al 100% (dimensione reale), meglio su cartoncino. Fai un foro nel cerchio tratteggiato e passaci uno spago o un nastro.'));
-}
 const myChar = () => { const a = state.giallo.assign.find(x => x.p === me); return a && charById(a.c); };
 const myAccusa = () => me && accuse.find(a => a.id === slug(me));
 
@@ -320,16 +313,15 @@ function screenGiallo() {
     const x = pers(state.giallo.assign.find(a => a.p === me));
     out.push(h('div', { class: 'box gold reveal' }, h('h3', {}, 'Il tuo personaggio · ' + x.role), h('p', { class: 'big-dish' }, x.name),
       h('p', {}, genere(c.intro, x.sesso, c.id)),
-      h('p', { style: 'font-size:15px;font-weight:600' }, 'Porta a tracolla il tuo cartellino. Scheda segreta della busta e telefono: non farli vedere a nessuno.')));
+      h('p', { style: 'font-size:15px;font-weight:600' }, 'Porta a tracolla il cartellino che ti ha dato Ottavio. Scheda segreta della busta e telefono: non farli vedere a nessuno.')));
     if (c.carattere) out.push(boxCarattere(c.carattere));
-    if (!morto) out.push(boxCartellino(c.id, x.name, x.role, x.sesso));
     if (g.call && g.call.to === me && !g.allarme && g.round === 0) out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Nello studio'),
       h('p', {}, 'Quando trovi il maestro, premi qui e grida: «Il maestro è morto!»'),
       h('button', { class: 'btn big', onclick: () => patch({ giallo: { ...state.giallo, allarme: { at: Date.now() } } }) }, 'Allarme!')));
     if (!morto) out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Goditi l’aperitivo nei panni del tuo personaggio. Il resto arriva sul telefono durante la serata.')));
     if (mosseAttive(g) && GIALLO.mosse[c.id]) out.push(boxMosse(c.id));
     else if (!morto && g.round === 0 && !g.via) out.push(h('div', { class: 'box gold' }, h('h3', {}, 'L’ora che conta'),
-      h('p', {}, 'Fino al discorso del maestro vale l’ora vera. Dal discorso in poi guarda solo il telefono: quando il maestro dà il via, qui parte l’orologio della villa (dalle 19:20, a metà velocità) e ti avvisa quando tocca a te.')));
+      h('p', {}, 'Fino al discorso del maestro vale l’ora vera. Dal discorso in poi guarda solo il telefono: quando il maestro dà il via, qui parte l’orologio della villa (dalle 19:20, a metà velocità) e ti avvisa quando tocca a te. Dal via all’allarme ti muovi solo quando te lo dice l’orologio: niente bagno, niente giri per casa.')));
     if (!morto && g.task && g.task.to === me) out.push(h('div', { class: 'box' }, h('h3', {}, 'La tua missione · non mostrarla'), h('div', { class: 'sub' }, passiMissione())));
     else {
       out.push(h('div', { class: 'box reveal' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
@@ -408,8 +400,6 @@ function screenNarratore() {
     admin ? h('button', { class: 'btn', onclick: () => go('regia') }, 'Vai alla Regia') : null));
   if (mosseAttive(g)) out.push(boxMosse('ottavio'));
   if (O.carattere) out.push(boxCarattere(O.carattere, 'Come interpreti Ottavio'));
-  out.push(boxCartellino('ottavio', O.name, 'Maestro orafo', null, 'Anche tu hai il cartellino da stampare. Se stampi per tutti, il PDF unico qui sotto ha i cartellini di ogni personaggio, al maschile e al femminile.'));
-  out.push(h('a', { class: 'btn ghost big', href: PDF_TUTTI, download: '', style: 'text-align:center;text-decoration:none' }, 'PDF con tutti i cartellini (A4, 4 per pagina)'));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il discorso di Ottavio · verso le 19:25'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Una battuta per ogni ospite'), h('p', { class: 'small' }, 'Dille durante l’aperitivo, a ciascuno: lì per lì non significano niente, si capiscono dopo.'),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), genere(O.lines[a.c] || '', x.sesso, a.c))); }))));
@@ -541,8 +531,7 @@ function screenRegia() {
       : g.solved ? 'Soluzione rivelata.' : g.accuse ? `Accuse: ${accuse.length} su ${g.assign.length}.` : g.round ? `Giro ${g.round} di 3 sbloccato.` : `${g.assign.length} personaggi assegnati: ognuno vede il suo nell’app.`),
     g.accuse && !g.solved && mancanoG.length ? h('p', { class: 'small' }, 'Mancano: ' + mancanoG.join(', ')) : null,
     g.assign.length ? h('p', { class: 'small' }, 'Narratore: ' + (g.narrator || '—') + '. La sera della cena segui il copione nella scheda Giallo e sblocca un giro a ogni portata.') : null,
-    h('div', { class: 'row' }, gBtns),
-    h('a', { class: 'btn ghost', href: PDF_TUTTI, download: '', style: 'text-align:center;text-decoration:none' }, 'PDF con tutti i cartellini da stampare')));
+    h('div', { class: 'row' }, gBtns)));
   // urne
   const voted = new Set(ballots.map(b => b.id));
   const missing = state.people.filter(p => !voted.has(slug(p)));
@@ -1008,7 +997,7 @@ function passiMissione() {
   return h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
         h('li', {}, 'Adesso: nell’ingresso, sulla poltrona, c’è la borsa del medico. Senza farti vedere, svuota la boccetta nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa. Poi torna in salotto.'),
         h('li', {}, 'Quando Ottavio dà il via parte l’orologio della villa sul telefono: ti avvisa a ogni ora qui sotto. 19:23: vai nel bagno della zona notte (oltre la porta scorrevole) e aspetta. Verso le 19:25 suona il campanello: aspetta di sentir chiudere la porta di casa e poi quella del salotto.'),
-        h('li', {}, '19:26: esci, versa la fialetta nel bicchierino sul vassoio in cima alle scale e torna subito nella zona notte.'),
+        h('li', {}, '19:26: prima ascolta. Se nell’ingresso o sulle scale c’è qualcuno, aspetta in bagno che se ne vada (hai tempo fino alle 19:27: alle 19:28 passa Della Valle). Quando è vuoto, versa la fialetta nel bicchierino sul vassoio in cima alle scale e torna subito nella zona notte.'),
         h('li', {}, '19:27: chiuditi nello sgabuzzino, nascondi la fialetta e aspetta al buio, senza farti sentire.'),
         h('li', {}, '19:34: scendi nello studio (il maestro sarà già «morto»), prendi la Stella, lascia la vetrina aperta e torna nello sgabuzzino.'),
         h('li', {}, 'All’allarme: lascia passare chi corre giù dal salotto, entra nel salotto vuoto e nascondi la Stella sotto il fagiano impagliato. Poi, appena senti rientrare dalla porta di casa quelli che erano fuori, unisciti a loro e scendi insieme. Se ti chiedono: eri in camera a incartare il regalo per il maestro.'));
