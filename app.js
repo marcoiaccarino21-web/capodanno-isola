@@ -950,10 +950,10 @@ function render() {
 function passiMissione() {
   return h('ol', { style: 'text-align:left;margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px' },
         h('li', {}, 'Adesso: nell’ingresso, sulla poltrona, c’è la borsa del medico. Senza farti vedere, svuota la boccetta nella fialetta che hai in tasca e rimetti la boccetta, vuota, nella borsa. Poi torna in salotto.'),
-        h('li', {}, '19:23: vai nel bagno della zona notte (oltre la porta scorrevole) e aspetta. Alle 19:25 suona il campanello: aspetta di sentir chiudere la porta di casa e poi quella del salotto.'),
-        h('li', {}, '19:26: esci, versa la fialetta nel bicchierino sul vassoio in cima alle scale e torna subito nella zona notte.'),
-        h('li', {}, '19:27: chiuditi nello sgabuzzino, nascondi la fialetta e aspetta al buio, senza farti sentire.'),
-        h('li', {}, '19:34: scendi nello studio (il maestro sarà già «morto»), prendi la Stella, lascia la vetrina aperta e torna nello sgabuzzino.'),
+        h('li', {}, 'Ore 19:26 (nella storia 19:23): vai nel bagno della zona notte (oltre la porta scorrevole) e aspetta. Verso le 19:30 suona il campanello: aspetta di sentir chiudere la porta di casa e poi quella del salotto.'),
+        h('li', {}, 'Ore 19:32 (nella storia 19:26): esci, versa la fialetta nel bicchierino sul vassoio in cima alle scale e torna subito nella zona notte.'),
+        h('li', {}, 'Ore 19:34 (nella storia 19:27): chiuditi nello sgabuzzino, nascondi la fialetta e aspetta al buio, senza farti sentire.'),
+        h('li', {}, 'Ore 19:48 (nella storia 19:34): scendi nello studio (il maestro sarà già «morto»), prendi la Stella, lascia la vetrina aperta e torna nello sgabuzzino.'),
         h('li', {}, 'All’allarme: lascia passare chi corre giù dal salotto, entra nel salotto vuoto e nascondi la Stella sotto il fagiano impagliato. Poi, appena senti rientrare dalla porta di casa quelli che erano fuori, unisciti a loro e scendi insieme. Se ti chiedono: eri in camera a incartare il regalo per il maestro.'));
 }
 function showMissione() {
