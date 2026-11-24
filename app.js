@@ -328,6 +328,8 @@ function screenGiallo() {
       h('button', { class: 'btn big', onclick: () => patch({ giallo: { ...state.giallo, allarme: { at: Date.now() } } }) }, 'Allarme!')));
     if (!morto) out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Goditi l’aperitivo nei panni del tuo personaggio. Il resto arriva sul telefono durante la serata.')));
     if (mosseAttive(g) && GIALLO.mosse[c.id]) out.push(boxMosse(c.id));
+    else if (!morto && g.round === 0 && !g.via) out.push(h('div', { class: 'box gold' }, h('h3', {}, 'L’ora che conta'),
+      h('p', {}, 'Fino al discorso del maestro vale l’ora vera. Dal discorso in poi guarda solo il telefono: quando il maestro dà il via, qui parte l’orologio della villa (dalle 19:20, a metà velocità) e ti avvisa quando tocca a te.')));
     if (!morto && g.task && g.task.to === me) out.push(h('div', { class: 'box' }, h('h3', {}, 'La tua missione · non mostrarla'), h('div', { class: 'sub' }, passiMissione())));
     else {
       out.push(h('div', { class: 'box reveal' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
@@ -519,7 +521,11 @@ function screenRegia() {
   const killer = g.assign.find(a => a.c === GIALLO.culprit);
   if (killer && g.round === 0 && !g.call) gBtns.push(h('button', { class: g.task ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, task: { to: killer.p, at: Date.now() } } }) },
     g.task ? 'Rimanda la missione a ' + killer.p : 'Manda ' + killer.p + ' a svuotare la boccetta'));
-  if (g.assign.length && g.round === 0 && !g.allarme) gBtns.push(confirm === 'gvia'
+  const ugiPronta = !killer || (g.task && g.task.done);
+  if (g.assign.length && g.round === 0 && !g.allarme && !g.via && !ugiPronta && confirm !== 'gvia') gBtns.push(
+    h('button', { class: 'btn', disabled: true }, g.task ? 'Via! · aspetta che ' + killer.p + ' prema «Fatto»' : 'Via! · prima manda ' + killer.p + ' a svuotare la boccetta'),
+    h('button', { class: 'btn ghost', onclick: () => { confirm = 'gvia'; render(); } }, 'Via lo stesso'));
+  else if (g.assign.length && g.round === 0 && !g.allarme) gBtns.push(confirm === 'gvia'
     ? h('button', { class: 'btn', onclick: () => { confirm = null; patch({ giallo: { ...g, via: Date.now() } }); } }, g.via ? 'Sì, riparti dalle 19:20' : 'Sì, via!')
     : h('button', { class: g.via ? 'btn ghost' : 'btn', onclick: () => { confirm = 'gvia'; render(); } }, g.via ? 'Orologio della villa: ' + oraVilla(g) + ' · riparti da capo' : 'Via! Partono le mosse'));
   if (g.assign.length && g.round < 3) gBtns.push(h('button', { class: g.round === 0 ? 'btn ghost' : 'btn', onclick: () => patch({ giallo: { ...g, round: g.round + 1 } }) }, 'Sblocca il giro ' + (g.round + 1)));
@@ -981,8 +987,8 @@ function showMossa() {
   if (old && old.dataset.k === key) return;
   old?.remove();
   const ok = () => { M.filter(([m]) => m <= due[0]).forEach(([m]) => save('mossa:' + g.via + ':' + m, '1')); document.getElementById('mossa')?.remove(); render(); };
-  const el = h('div', { id: 'mossa', 'data-k': key, role: 'alertdialog', style: 'position:fixed;inset:0;z-index:44;background:#171C36;display:flex;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
-    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
+  const el = h('div', { id: 'mossa', 'data-k': key, role: 'alertdialog', style: 'position:fixed;inset:0;z-index:44;background:#171C36;display:flex;align-items:flex-start;overflow-y:auto;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px;margin:auto 0' },
       h('p', { class: 'eyebrow' }, 'Orologio della villa · solo per te'),
       h('h1', {}, 'Sono le ', h('em', {}, '19:' + String(due[0]).padStart(2, '0'))),
       h('p', { style: 'font-size:19px;line-height:1.5' }, testoMossa(id, due[1])),
@@ -1012,12 +1018,12 @@ function showMissione() {
   const due = g && g.task && g.task.to === me && !g.call && g.round === 0 && load('task') !== String(g.task.at) && !document.getElementById('chiamata');
   if (!due) { old?.remove(); return; }
   if (old) return;
-  const el = h('div', { id: 'missione', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:45;background:#171C36;display:flex;align-items:center;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
-    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px' },
+  const el = h('div', { id: 'missione', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:45;background:#171C36;display:flex;align-items:flex-start;overflow-y:auto;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:20px;margin:auto 0' },
       h('p', { class: 'eyebrow' }, 'Solo per te · non dirlo a nessuno'),
       h('h1', {}, 'Una ', h('em', {}, 'missione')),
       h('div', { style: 'font-size:18px;line-height:1.45' }, passiMissione()),
-      h('button', { class: 'btn big', onclick: () => { save('task', String(g.task.at)); document.getElementById('missione')?.remove(); } }, 'Fatto, chiudi')));
+      h('button', { class: 'btn big', onclick: () => { save('task', String(g.task.at)); document.getElementById('missione')?.remove(); patch({ giallo: { ...state.giallo, task: { ...state.giallo.task, done: Date.now() } } }); } }, 'Fatto: boccetta svuotata, sono in salotto')));
   document.body.append(el);
   try { navigator.vibrate && navigator.vibrate([200, 100, 200]); } catch {}
 }
