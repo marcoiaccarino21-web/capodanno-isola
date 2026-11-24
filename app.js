@@ -304,7 +304,7 @@ function screenGiallo() {
   const prologo = GIALLO.setting.split(' Dopo il brindisi')[0];
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, altri(morto ? GIALLO.setting : prologo))));
   if (!g.assign.length) {
-    out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei. Il resto lo scoprirai durante la serata.')));
+    out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'I personaggi si assegnano da soli giovedì 17 dicembre alle 9:00: qui vedrai chi sei. Il resto lo scoprirai durante la serata.')));
     return out;
   }
   if (me && me === g.narrator) return [...out, ...screenNarratore()];
@@ -937,6 +937,84 @@ function boxInstalla() {
       h('button', { class: 'btn ghost', style: 'flex:1', onclick: () => { save('installa', 'no'); render(); } }, richiestaInstalla ? 'Non ora' : 'Ok, chiudi')));
 }
 
+/* ---------- app chiusa fino all'apertura ---------- */
+// giovedì 17 dicembre 2026 alle 9:00 ora italiana (UTC+1): due settimane prima del giallo, per pensare all'outfit
+const APERTURA = Date.UTC(2026, 11, 17, 8, 0);
+const chiusa = () => Date.now() < APERTURA && !admin;
+function contoTesto() {
+  const t = Math.max(0, APERTURA - Date.now()); const s = Math.floor(t / 1000);
+  const d = Math.floor(s / 86400), o = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return [[d, 'giorni', 'giorno'], [o, 'ore', 'ora'], [m, 'minuti', 'minuto'], [x, 'secondi', 'secondo']];
+}
+function contoBox() {
+  return h('div', { id: 'conto', style: 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center' },
+    contoTesto().map(([n, pl, sg]) => h('div', { style: 'background:rgba(23,28,54,.1);border-radius:12px;padding:10px 4px' },
+      h('b', { style: 'display:block;font-size:30px;font-variant-numeric:tabular-nums;color:inherit' }, String(n).padStart(2, '0')),
+      h('small', {}, n === 1 ? sg : pl))));
+}
+function boxNotifiche() {
+  if (!('Notification' in window)) {
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    return ios ? h('p', { class: 'small' }, 'Su iPhone l’avviso arriva solo se prima installi l’app nella schermata Home (vedi sopra) e la riapri da lì.') : null;
+  }
+  if (Notification.permission === 'granted') return h('p', { class: 'small' }, 'Avviso attivo: se il telefono ha l’app aperta o appena chiusa, ti arriva una notifica con il tuo personaggio. Per sicurezza, giovedì mattina aprila tu.');
+  if (Notification.permission === 'denied') return h('p', { class: 'small' }, 'Le notifiche sono bloccate per questa app: giovedì mattina aprila tu.');
+  return h('button', { class: 'btn ghost', onclick: async () => { try { await Notification.requestPermission(); } catch {} render(); } }, 'Avvisami quando si apre');
+}
+function screenAttesa() {
+  return [
+    h('div', { class: 'box gold', id: 'attesa', style: 'text-align:center' },
+      h('p', { class: 'eyebrow', style: 'color:inherit;opacity:.75' }, 'Ciao ' + me),
+      h('h2', {}, 'Si apre giovedì 17 dicembre alle 9:00'),
+      contoBox(),
+      h('p', { class: 'sub' }, 'Quel giorno scopri chi sei nel giallo del 31: due settimane per pensare a un outfit adatto al personaggio.')),
+    h('div', { class: 'box' }, h('h3', {}, 'Cosa trovi all’apertura'),
+      h('div', { class: 'list' }, [['Il giallo', 'il tuo personaggio, con nome, ritratto e ruolo'], ['Cena dei mondi', 'la tua squadra e il tuo piatto'], ['Oscar', 'le categorie e il voto della serata'], ['Giochi', 'impostore, lupus, Parole vietate e il torneo']].slice(0, SOLO ? 1 : 4)
+        .map(([a, b]) => h('div', { class: 'item' }, h('b', {}, a), h('span', {}, b))))),
+    h('div', { class: 'box' }, h('h3', {}, 'Avvisami'), boxNotifiche())];
+}
+// all'apertura il primo telefono che si collega assegna i personaggi (stessa assegnazione fissa della regia)
+let assegnando = false;
+function assegnaSeServe() {
+  const g = state.giallo;
+  if (assegnando || Date.now() < APERTURA || g.assign.length || !state.people.includes('Ih')) return;
+  assegnando = true;
+  patch({ giallo: { ...g, narrator: 'Ih', assign: assignCharacters(state.people, GIALLO.order, 'Ih') } }).finally(() => { assegnando = false; });
+}
+// rivelazione del personaggio, una volta sola per telefono
+function showRivela() {
+  const g = state.giallo; const old = document.getElementById('rivela');
+  const a = me && !chiusa() && g.assign.find(x => x.p === me);
+  const key = a ? me + ':' + a.c : null;
+  if (!a || load('rivelato') === key || document.getElementById('chiamata') || g.round > 0 || g.call) { old?.remove(); return; }
+  if (old) return;
+  const x = pers(a);
+  const ok = () => { save('rivelato', key); document.getElementById('rivela')?.remove(); go('giallo'); };
+  const el = h('div', { id: 'rivela', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:46;background:#171C36;display:flex;align-items:flex-start;overflow-y:auto;justify-content:center;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
+    h('div', { class: 'wrap reveal', style: 'text-align:center;gap:18px;margin:auto 0' },
+      h('p', { class: 'eyebrow' }, 'Si apre! · Delitto a Villa Ferraris'),
+      ritratto(x.key),
+      h('h1', {}, 'Sei ', h('em', {}, x.name)),
+      h('p', { style: 'font-size:19px;line-height:1.5' }, x.role),
+      h('p', { class: 'sub' }, 'Hai due settimane per l’outfit. Il resto lo scopri nella scheda Giallo e la sera del 31.'),
+      h('button', { class: 'btn big', onclick: ok }, 'Vedi la mia scheda')));
+  document.body.append(el);
+  try { navigator.vibrate && navigator.vibrate([300, 120, 300, 120, 500]); } catch {}
+  if ('Notification' in window && Notification.permission === 'granted' && load('notificato') !== key) {
+    save('notificato', key);
+    const opts = { body: 'Si apre! Sei ' + x.name + ', ' + x.role.charAt(0).toLowerCase() + x.role.slice(1) + '.', icon: 'icone/icona-192.png', tag: 'apertura' };
+    (navigator.serviceWorker ? navigator.serviceWorker.ready.then(r => r.showNotification('Capodanno a Isola', opts)) : Promise.reject())
+      .catch(() => { try { new Notification('Capodanno a Isola', opts); } catch {} });
+  }
+}
+// conto alla rovescia: aggiorna i numeri ogni secondo e alle 9:00 apre da solo
+let eraChiusa = chiusa();
+setInterval(() => {
+  const c = document.getElementById('conto'); if (c) c.replaceWith(contoBox());
+  const ora = chiusa(); if (eraChiusa && !ora) { eraChiusa = false; if (tab !== 'chi' && tab !== 'regia') tab = HOME; render(); }
+  eraChiusa = ora;
+}, 1000);
+
 /* ---------- impaginazione ---------- */
 function render() {
   const app = document.getElementById('app'); const nav = document.getElementById('tabs');
@@ -947,10 +1025,12 @@ function render() {
   let body;
   if (!configured) body = [h('div', { class: 'warn' }, 'App non ancora collegata a Firebase: incolla la configurazione in config.js (vedi LEGGIMI).')];
   else if (!loaded) body = [h('p', { class: 'sub' }, 'Caricamento…')];
-  else if (SOLO && !['chi', 'giallo', 'regia'].includes(tab)) { tab = me ? 'giallo' : 'chi'; body = me ? screenGiallo() : screenChi(); }
+  else if (SOLO && !['chi', 'giallo', 'regia'].includes(tab)) { tab = me ? 'giallo' : 'chi'; body = me ? (chiusa() ? screenAttesa() : screenGiallo()) : screenChi(); }
   else if (tab === 'chi' || (!me && tab !== 'regia')) body = screenChi();
+  else if (chiusa() && tab !== 'regia') body = screenAttesa();
   else body = { squadra: screenSquadra, giallo: screenGiallo, oscar: screenOscar, giochi: screenGiochi, regia: screenRegia }[tab]();
-  if (configured && loaded) { const bi = boxInstalla(); if (bi) body = [bi, ...body]; }
+  if (configured && loaded) { const bi = boxInstalla(); if (bi) body = body[0]?.id === 'attesa' ? [body[0], bi, ...body.slice(1)] : [bi, ...body]; }
+  if (configured && loaded) assegnaSeServe();
   const foot = !admin && tab !== 'regia' && configured ? h('button', { class: 'btn ghost', style: 'align-self:center;font-size:13px;min-height:36px;padding:6px 14px;opacity:.7', onclick: () => go('regia') }, 'Area organizzatore') : null;
   app.replaceChildren(...[head, error ? h('p', { class: 'warn', role: 'alert' }, error) : null, ...body, foot].filter(Boolean));
   // barra in basso
@@ -958,7 +1038,7 @@ function render() {
   if (admin) tabs.push(['regia', 'Regia']);
   nav.style.setProperty('--n', tabs.length);
   nav.replaceChildren(...tabs.map(([id, label]) => h('button', { 'aria-current': tab === id ? 'page' : null, onclick: () => go(me || id === 'regia' ? id : 'chi') }, label)));
-  nav.hidden = !configured;
+  nav.hidden = !configured || (loaded && chiusa());
   avanzaGioco();
   showCall();
   showTelefonata();
@@ -966,6 +1046,7 @@ function render() {
   showMossa();
   showTavola();
   showAllarme();
+  showRivela();
 }
 // orologio della villa: parte col «Via!» alle 19:20 e va a metà velocità (1 minuto della villa = 2 minuti veri)
 function mosseAttive(g) { return !!(g && g.via && g.round === 0 && !g.allarme); }
