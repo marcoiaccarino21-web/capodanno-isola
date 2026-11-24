@@ -72,7 +72,7 @@ export const PROGRAM = [
     ['Mattina', 'Sveglia libera, colazione'],
     ['13:00', 'Pranzo: trofie al pesto'],
     ['14:00', 'Gli Oscar del Capodanno: spoglio e premiazione'],
-    ['14:45', 'Pulizie a squadre'],
+    ['14:45', 'Pulizie tutti insieme'],
     ['16:00', 'Partenza per il rientro']
   ]}
 ];
