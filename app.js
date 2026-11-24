@@ -2,7 +2,7 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc, getDocs } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, DISHES, SPESA, RICETTE, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, nominations, assignCharacters } from './logic.js';
-import { GIALLO, femminile } from './giallo.js';
+import { GIALLO, femminile, RIF_F } from './giallo.js';
 import { classifica, puntiImpostore, puntiLupus, puntiGiallo, PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG, nuovoAssassino, viviA, uccidi, annullaUltima, puntiAssassino, nuovoTaboo, spiega, cartaTaboo, puntiTaboo } from './giochi.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
@@ -261,7 +261,21 @@ function ritratto(key, cls) {
   const svg = key && RITRATTI[key];
   return svg ? h('img', { class: cls || 'ritratto', alt: '', src: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) }) : null;
 }
-const genere = (t, s, id) => !s ? t : s === 'F' ? femminile(id, t.replace(/un figlio o una figlia/g, 'una figlia')) : t.replace(/un figlio o una figlia/g, 'un figlio');
+const genere0 = (t, s, id) => !s ? t : s === 'F' ? femminile(id, t.replace(/un figlio o una figlia/g, 'una figlia')) : t.replace(/un figlio o una figlia/g, 'un figlio');
+// accorda anche i riferimenti agli altri personaggi interpretati da ragazze (es. «il segretario» → «la segretaria»)
+const altri = t => (state.giallo.assign || []).reduce((x, a) => pers(a).sesso === 'F' && RIF_F[a.c] ? RIF_F[a.c].reduce((y, [m, f]) => y.split(m).join(f), x) : x, t || '');
+const genere = (t, s, id) => altri(genere0(t, s, id));
+// come interpretare il personaggio: carattere, voce, frasi, gesto, cosa pensa degli altri
+function boxCarattere(k, titolo) {
+  if (!k) return null;
+  const nome = id => { if (id === 'ottavio') return 'Ottavio'; const a = (state.giallo.assign || []).find(x => x.c === id); return a ? pers(a).name + ' (' + a.p + ')' : null; };
+  const opinioni = Object.entries(k.altri || {}).map(([id, t]) => [nome(id), t]).filter(([n]) => n);
+  return h('details', { class: 'box ricetta' }, h('summary', {}, h('h3', {}, titolo || 'Come lo interpreti'), h('span', { class: 'small' }, 'Carattere, voce, frasi e cosa pensi degli altri')),
+    h('h3', {}, 'Carattere'), h('p', {}, altri(k.tipo)), h('h3', {}, 'Come parli'), h('p', {}, altri(k.voce)),
+    h('h3', {}, 'Frasi da usare'), h('ul', {}, k.frasi.map(f => h('li', {}, altri(f)))), h('h3', {}, 'Il tuo gesto'), h('p', {}, altri(k.gesto)),
+    opinioni.length ? h('h3', {}, 'Cosa pensi degli altri') : null,
+    opinioni.length ? h('div', { class: 'list' }, opinioni.map(([n, t]) => h('div', { class: 'item' }, h('b', {}, n), h('span', {}, altri(t))))) : null);
+}
 (() => { const st = document.createElement('style'); st.textContent =
   '.ritratto{display:block;width:min(240px,70%);margin:0 auto 4px;aspect-ratio:540/620;filter:drop-shadow(0 6px 16px rgba(0,0,0,.35))}' +
   '.galleria{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 10px}' +
@@ -295,7 +309,7 @@ function screenGiallo() {
   // prima del ritrovamento i giocatori non sanno ancora che Ottavio morirà
   const morto = !!g.call || g.round > 0;
   const prologo = GIALLO.setting.split(' Alle 19:30')[0];
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, morto ? GIALLO.setting : prologo)));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Cena con delitto · 31 sera'), h('h2', {}, GIALLO.title), h('p', { class: 'sub' }, altri(morto ? GIALLO.setting : prologo))));
   if (!g.assign.length) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'I personaggi si assegnano una settimana prima: qui vedrai chi sei. Il resto lo scoprirai durante la serata.')));
     return out;
@@ -307,6 +321,7 @@ function screenGiallo() {
     out.push(h('div', { class: 'box gold reveal' }, h('h3', {}, 'Il tuo personaggio · ' + x.role), h('p', { class: 'big-dish' }, x.name),
       h('p', {}, genere(c.intro, x.sesso, c.id)),
       h('p', { style: 'font-size:15px;font-weight:600' }, 'Porta a tracolla il tuo cartellino. Il personaggio è solo sul tuo telefono: non farlo vedere a nessuno.')));
+    if (c.carattere) out.push(boxCarattere(c.carattere));
     if (!morto) out.push(boxCartellino(c.id, x.name, x.role, x.sesso));
     if (g.call && g.call.to === me && !g.allarme && g.round === 0) out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Nello studio'),
       h('p', {}, 'Quando trovi il maestro, premi qui e grida: «Il maestro è morto!»'),
@@ -379,7 +394,7 @@ function boxCartina() {
 function boxStanze() {
   // solo per il narratore: i giocatori scoprono le stanze dal vivo, con la cartina e gli oggetti
   return h('div', { class: 'box' }, h('h3', {}, 'Le stanze della villa'),
-    h('div', { class: 'list' }, GIALLO.rooms.map(x => h('div', { class: 'item' }, h('b', {}, x.name + ' · giro ' + x.round), h('span', {}, x.text)))));
+    h('div', { class: 'list' }, GIALLO.rooms.map(x => h('div', { class: 'item' }, h('b', {}, x.name + ' · giro ' + x.round), h('span', {}, altri(x.text))))));
 }
 function screenNarratore() {
   const g = state.giallo; const out = [];
@@ -388,14 +403,15 @@ function screenNarratore() {
     h('p', { style: 'font-size:16px;font-weight:600' }, 'Il tuo cartellino: ' + ACCESSORI.ottavio.cosa),
     h('p', {}, 'Nel prologo sei vivo: accogli gli ospiti, brindi e muori. Poi torni come fantasma e guidi la serata. Giri, accuse e soluzione si comandano dalla Regia.'),
     admin ? h('button', { class: 'btn', onclick: () => go('regia') }, 'Vai alla Regia') : null));
+  if (O.carattere) out.push(boxCarattere(O.carattere, 'Come interpreti Ottavio'));
   out.push(boxCartellino('ottavio', O.name, 'Maestro orafo', null, 'Anche tu hai il cartellino da stampare. Se stampi per tutti, il PDF unico qui sotto ha i cartellini di ogni personaggio, al maschile e al femminile.'));
   out.push(h('a', { class: 'btn ghost big', href: PDF_TUTTI, download: '', style: 'text-align:center;text-decoration:none' }, 'PDF con tutti i cartellini (A4, 4 per pagina)'));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il brindisi di Ottavio · verso le 19:10'), h('p', { style: 'font-style:italic;line-height:1.6' }, '«' + O.speech + '»')));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Una battuta per ogni ospite'), h('p', { class: 'small' }, 'Dille durante l’aperitivo, a ciascuno: lì per lì non significano niente, si capiscono dopo.'),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), genere(O.lines[a.c] || '', x.sesso, a.c))); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Il copione della serata'),
-    h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
-  out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
+    h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), altri(x.text)))))));
+  out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, altri(t))))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Le telefonate dei personaggi assenti'),
     h('p', { class: 'small' }, 'Quelle in arrivo partono da sole sul telefono di chi le riceve quando sblocchi il giro; quella a Gianni la fa chi compone il numero. Se serve, falle sentire tu da qui.'),
     h('div', { class: 'list' }, (GIALLO.calls || []).map(t => { const a = g.assign.find(x => x.c === t.to);
@@ -406,12 +422,12 @@ function screenNarratore() {
   out.push(boxStanze());
   const ca = g.assign.find(a => a.c === GIALLO.culprit); const who = ca?.p;
   out.push(h('div', { class: 'envelope' }, h('h3', {}, 'Solo per te · la soluzione'),
-    h('p', { class: 'winner' }, (ca ? pers(ca).name : charById(GIALLO.culprit).name) + (who ? ' (' + who + ')' : '')), h('p', {}, GIALLO.solution)));
+    h('p', { class: 'winner' }, (ca ? pers(ca).name : charById(GIALLO.culprit).name) + (who ? ' (' + who + ')' : '')), h('p', {}, altri(GIALLO.solution))));
   if (g.accuse || g.solved) out.push(...boxSoluzioneConteggio());
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Gli ospiti della villa'), galleria(g.assign, false),
     h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.name + ': '), 'cartellino ' + ACCESSORI[a.c].cosa.toLowerCase() + (x.sesso === 'F' ? ' (versione F)' : ' (versione M)'))); }))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Solo per te · chi era dove tra le 19:25 e le 19:35'),
-    h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), charById(a.c).where || '')); }))));
+    h('div', { class: 'list' }, g.assign.map(a => { const x = pers(a); return h('div', { class: 'item' }, h('b', {}, a.p), h('span', {}, h('strong', {}, x.role + ': '), genere(charById(a.c).where || '', x.sesso, a.c))); }))));
   return out;
 }
 const nomeDi = id => { const a = state.giallo.assign.find(x => x.c === id); return a ? pers(a).name : charById(id).name; };
@@ -443,7 +459,7 @@ function boxSoluzione() {
   const t = {}; for (const a of accuse) t[a.suspect] = (t[a.suspect] || 0) + 1;
   const rows = Object.entries(t).sort((a, b) => b[1] - a[1]); const top = rows.length ? rows[0][1] : 0;
   const right = accuse.filter(a => a.suspect === GIALLO.culprit).map(a => a.voter);
-  return [h('div', { class: 'envelope reveal' }, h('h3', {}, 'La soluzione'), h('p', { class: 'winner' }, culprit.name + (who ? ' (' + who + ')' : '')), h('p', {}, GIALLO.solution),
+  return [h('div', { class: 'envelope reveal' }, h('h3', {}, 'La soluzione'), h('p', { class: 'winner' }, culprit.name + (who ? ' (' + who + ')' : '')), h('p', {}, altri(GIALLO.solution)),
     h('h3', {}, 'Le accuse'), h('div', { class: 'tally' }, rows.map(([id, k]) => h('div', {}, h('span', {}, nomeDi(id)), h('span', { class: 'count' }, `${k} ${k === 1 ? 'accusa' : 'accuse'}`),
       h('span', { class: 'bar' }, h('i', { style: `width:${top ? k / top * 100 : 0}%` }))))),
     h('p', { class: 'sub' }, right.length ? 'Hanno indovinato: ' + right.join(', ') : 'Nessuno ha indovinato: il colpevole l’ha fatta franca.'))];
