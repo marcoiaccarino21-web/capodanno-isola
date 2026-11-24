@@ -3,7 +3,7 @@ import { getFirestore, doc, collection, onSnapshot, setDoc, updateDoc, deleteDoc
 import { firebaseConfig, ADMIN_PIN } from './config.js';
 import { MENUS, CATEGORIES, DISHES, SPESA, RICETTE, dishById, slug, draw, menuById, teamOf, teamLabel, nominees, activeCategories, spoglioCategories, detectives, tally, nominations, assignCharacters } from './logic.js';
 import { GIALLO, femminile } from './giallo.js';
-import { classifica, puntiImpostore, puntiLupus, puntiGiallo, PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG, nuovoNonHoMai, fraseNonHoMai, nuovoTaboo, spiega, cartaTaboo, puntiTaboo } from './giochi.js';
+import { classifica, puntiImpostore, puntiLupus, puntiGiallo, PAROLE, nuovoImpostore, cartaImpostore, contaVoti, piuVotati, RUOLI, lupiConsigliati, nuovoLupus, ruoloDi, vivi, bersagliNotte, notteCompleta, risolviNotte, giornoCompleto, risolviGiorno, nuovaNotte, slugG, nuovoAssassino, viviA, uccidi, annullaUltima, puntiAssassino, nuovoTaboo, spiega, cartaTaboo, puntiTaboo } from './giochi.js';
 // ?giallo nel link: app solo per la cena con delitto (niente programma, squadre e Oscar)
 const SOLO = new URLSearchParams(location.search).has('giallo');
 const HOME = SOLO ? 'giallo' : 'squadra';
@@ -13,7 +13,7 @@ import { ACCESSORI, cartellino, pdfDi, PDF_TUTTI } from './accessori.js';
 
 /* ---------- stato ---------- */
 const NO_GIALLO = { assign: [], narrator: null, round: 0, accuse: false, solved: false, call: null, task: null, allarme: null };
-let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], nominated: [], revealedAt: {}, presenter: null, presenterMode: 'staffetta', giallo: NO_GIALLO, tavola: null, gioco: null, torneo: {} };
+let state = { people: [], teams: [], sesso: {}, votingOpen: false, opened: false, revealed: [], nominated: [], revealedAt: {}, presenter: null, presenterMode: 'staffetta', giallo: NO_GIALLO, tavola: null, gioco: null, assassino: null, torneo: {} };
 let RITRATTI = {};
 caricaRitratti().then(r => { RITRATTI = r; render(); }).catch(() => {});
 let accuse = [];            // [{id, voter, suspect}]
@@ -37,7 +37,7 @@ if (configured) {
   stateRef = doc(db, 'capodanno', 'stato');
   onSnapshot(stateRef, snap => {
     const v = snap.exists() ? snap.data() : {};
-    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], nominated: v.nominated || [], revealedAt: v.revealedAt || {}, presenter: v.presenter || null, presenterMode: v.presenterMode || 'staffetta', giallo: { ...NO_GIALLO, ...(v.giallo || {}) }, tavola: v.tavola || null, gioco: v.gioco || null, torneo: v.torneo || {} };
+    state = { people: v.people || [], teams: v.teams || [], sesso: v.sesso || {}, votingOpen: !!v.votingOpen, opened: !!v.opened, revealed: v.revealed || [], nominated: v.nominated || [], revealedAt: v.revealedAt || {}, presenter: v.presenter || null, presenterMode: v.presenterMode || 'staffetta', giallo: { ...NO_GIALLO, ...(v.giallo || {}) }, tavola: v.tavola || null, gioco: v.gioco || null, assassino: v.assassino || null, torneo: v.torneo || {} };
     loaded = true;
     if (me && !state.people.includes(me)) { me = null; save('me', null); if (tab !== 'regia') tab = 'chi'; }
     render();
@@ -584,6 +584,7 @@ var segnati = {};
 function avanzaGioco() {
   const gg = state.giallo;
   if (gg && gg.solved && accuse.length) segnaPunti('giallo', 'Giallo', puntiGiallo(accuse, (gg.assign.find(a => a.c === GIALLO.culprit) || {}).p, gg.narrator));
+  if (state.assassino?.vince) segnaPunti('a' + state.assassino.id, 'Parola assassina', puntiAssassino(state.assassino));
   const g = state.gioco; if (!g) return;
   if (g.tipo === 'impostore' && g.fase === 'svelato') segnaPunti('i' + g.id, 'Impostore', puntiImpostore(g));
   if (g.tipo === 'lupus' && g.fase === 'fine') segnaPunti('l' + g.id, 'Lupus', puntiLupus(g));
@@ -615,12 +616,12 @@ function fineBox(g) {
 }
 
 let ultimoGioco = null;
-function screenGiochi() {
+function screenGiochi() { const r = screenGiochiBase(); return setup || regoleBar ? r : [...boxAssassino(), ...r]; }
+function screenGiochiBase() {
   const g = state.gioco;
   if ((g && g.id) !== ultimoGioco) { ultimoGioco = g && g.id; cartaAperta = false; }
   if (g && g.tipo === 'impostore') return screenImpostore(g);
   if (g && g.tipo === 'lupus') return screenLupus(g);
-  if (g && g.tipo === 'nonhomai') return screenNonHoMai(g);
   if (g && g.tipo === 'taboo') return screenTaboo(g);
   if (regoleBar) return screenRegoleBarcellona();
   if (setup) return screenSetup();
@@ -634,8 +635,8 @@ function screenGiochi() {
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Parole vietate'), h('small', {}, 'Due squadre, a tempo: fai indovinare la parola senza dire le 5 vietate. Chi spiega ha la carta sul telefono, gli avversari controllano. Da 4 giocatori.')),
     h('button', { class: 'nominee', onclick: () => { regoleBar = true; render(); } },
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Il Barcellona'), h('small', {}, 'Gioco alcolico con un mazzo di carte vero: qui ci sono le regole.')),
-    h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'nonhomai', sel: [...state.people], opz: { mazzo: 'soft' } }; render(); } },
-      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Non ho mai'), h('small', {}, 'L’app pesca una frase, chi l’ha fatto beve e confessa sul telefono. Versione tranquilla o piccante.')),
+    state.assassino ? null : h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'assassino', sel: [...state.people], opz: {} }; render(); } },
+      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Parola assassina'), h('small', {}, 'Dura tutto il weekend, in sottofondo. Ognuno ha una parola segreta e una vittima: se riesci a fargliela dire, è morta e ti prendi la sua parola e la sua vittima. Da 3 giocatori.')),
     ...boxTorneo()];
 }
 var punti = null; // { gioco, chi: [], pt }
@@ -643,7 +644,7 @@ const GIOCHI_TORNEO = ['Beer pong', 'Flip cup', 'Ring of fire', 'Codenames', 'Di
 function boxTorneo() {
   const rows = classifica(state.torneo, state.people); const top = rows.length ? rows[0][1] : 0;
   const out = [h('div', { class: 'box tally' }, h('h3', {}, 'Torneo · Campione di Isola'),
-    h('p', { class: 'small' }, 'Punti automatici da impostore (1 a chi vota giusto, 3 all’impostore che la fa franca), lupus (2 a chi vince, +1 se è vivo) e giallo (2 a chi accusa il colpevole, 3 al primo, 4 al colpevole se lo scopre meno di metà). Il resto lo segnate voi. Chi è primo il 1° gennaio vince l’Oscar.'),
+    h('p', { class: 'small' }, 'Punti automatici da impostore (1 a chi vota giusto, 3 all’impostore che la fa franca), parola assassina (1 per vittima, 3 a chi vince), lupus (2 a chi vince, +1 se è vivo) e giallo (2 a chi accusa il colpevole, 3 al primo, 4 al colpevole se lo scopre meno di metà). Il resto lo segnate voi. Chi è primo il 1° gennaio vince l’Oscar.'),
     ...rows.map(([n, k], i) => h('div', {}, h('span', { class: n === me ? 'mine' : null }, (i + 1) + '. ' + n), h('span', { class: 'count' }, k + (k === 1 ? ' punto' : ' punti')),
       h('div', { class: 'bar' }, h('i', { style: `width:${top ? Math.max(0, k) / top * 100 : 0}%` })))))];
   if (!punti) out.push(h('button', { class: 'btn ghost', onclick: () => { punti = { gioco: GIOCHI_TORNEO[0], chi: [], pt: 1 }; render(); } }, 'Segna dei punti'));
@@ -664,20 +665,19 @@ function boxTorneo() {
 }
 
 function screenSetup() {
-  const s = setup; const n = s.sel.length; const lup = s.tipo === 'lupus'; const tab_ = s.tipo === 'taboo'; const nhm = s.tipo === 'nonhomai';
-  const min = lup ? 5 : tab_ ? 4 : nhm ? 1 : 3;
+  const s = setup; const n = s.sel.length; const lup = s.tipo === 'lupus'; const tab_ = s.tipo === 'taboo'; const ass = s.tipo === 'assassino';
+  const min = lup ? 5 : tab_ ? 4 : 3;
   const toggle = p => { s.sel = s.sel.includes(p) ? s.sel.filter(x => x !== p) : [...s.sel, p]; render(); };
   const opt = (label, on, fn) => h('button', { class: 'nominee', 'aria-pressed': on ? 'true' : 'false', onclick: () => { fn(); render(); } }, h('span', {}, (on ? '✓ ' : '') + label));
-  const out = [h('div', { class: 'box' }, h('h3', {}, 'Nuova partita'), h('h2', {}, lup ? 'Lupus in fabula' : tab_ ? 'Parole vietate' : nhm ? 'Non ho mai' : 'L’impostore'),
+  const out = [h('div', { class: 'box' }, h('h3', {}, 'Nuova partita'), h('h2', {}, lup ? 'Lupus in fabula' : tab_ ? 'Parole vietate' : ass ? 'Parola assassina' : 'L’impostore'),
     h('p', { class: 'sub' }, `Chi gioca? ${n} selezionati.`),
     h('div', { class: 'names' }, state.people.map(p => h('button', { class: 'nominee', 'aria-pressed': s.sel.includes(p) ? 'true' : 'false', onclick: () => toggle(p) }, h('span', {}, (s.sel.includes(p) ? '✓ ' : '') + p)))))];
   if (tab_) {
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Regole'), h('p', { class: 'small' }, 'Le squadre le fa l’app a caso, metà e metà.'),
       h('div', { class: 'row' }, h('span', {}, 'Secondi a turno'), ...[45, 60, 90].map(k => h('button', { class: k === s.opz.durata ? 'btn' : 'btn ghost', onclick: () => { s.opz.durata = k; render(); } }, String(k)))),
       h('div', { class: 'row' }, h('span', {}, 'Si vince a'), ...[10, 20, 30].map(k => h('button', { class: k === s.opz.obiettivo ? 'btn' : 'btn ghost', onclick: () => { s.opz.obiettivo = k; render(); } }, String(k))))));
-  } else if (nhm) {
-    out.push(h('div', { class: 'box' }, h('h3', {}, 'Frasi'),
-      ...[['soft', 'Tranquille'], ['piccante', 'Piccanti'], ['tutte', 'Tutte mescolate']].map(([k, l]) => opt(l, s.opz.mazzo === k, () => { s.opz.mazzo = k; }))));
+  } else if (ass) {
+    out.push(h('div', { class: 'box' }, h('h3', {}, 'Regole'), REGOLE_ASSASSINO.map(r => h('p', { class: 'small' }, r))));
   } else if (!lup) {
     const maxImp = Math.max(1, Math.floor((n - 1) / 2));
     out.push(h('div', { class: 'box' }, h('h3', {}, 'Regole'),
@@ -700,7 +700,8 @@ function screenSetup() {
     h('button', { class: 'btn ghost', style: 'flex:1', onclick: () => { setup = null; render(); } }, 'Indietro'),
     h('button', { class: 'btn', style: 'flex:2', disabled: n < min || !me || null, onclick: () => {
       const players = state.people.filter(p => s.sel.includes(p));
-      const g = tab_ ? nuovoTaboo(players, me, s.opz) : nhm ? nuovoNonHoMai(players, me, s.opz.mazzo) : lup ? nuovoLupus(players, me, { ...s.opz, lupi: s.opz.lupi || lupiConsigliati(players.length) }) : nuovoImpostore(players, me, s.opz, (state.gioco && state.gioco.usate) || []);
+      if (ass) { setup = null; assAperta = false; setCampo('assassino', nuovoAssassino(players, me)); return; }
+      const g = tab_ ? nuovoTaboo(players, me, s.opz) : lup ? nuovoLupus(players, me, { ...s.opz, lupi: s.opz.lupi || lupiConsigliati(players.length) }) : nuovoImpostore(players, me, s.opz, (state.gioco && state.gioco.usate) || []);
       setup = null; cartaAperta = false; setGioco(g);
     } }, n < min ? `Servono almeno ${min} giocatori` : 'Inizia la partita')));
   return out;
@@ -803,17 +804,34 @@ function screenLupus(g) {
   return out;
 }
 
-function screenNonHoMai(g) {
-  const frase = fraseNonHoMai(g); const si = (g.si || {})[g.i] || {}; const mio = si[slugG(me)];
-  const chi = state.people.filter(p => si[slugG(p)]); const fine = g.i >= g.ordine.length - 1;
-  return [h('div', { class: 'box' }, h('h3', {}, 'Non ho mai · ' + (g.i + 1) + ' di ' + g.ordine.length + (g.mazzo === 'piccante' ? ' · piccante' : g.mazzo === 'tutte' ? ' · tutte' : '')),
-      h('p', { class: 'sub' }, 'Chi l’ha fatto beve un sorso (o alza la mano). Chiunque passa alla prossima.')),
-    h('div', { class: 'envelope current reveal' }, h('h3', {}, 'Non ho mai…'), h('p', { class: 'winner', style: 'font-size:28px;line-height:1.25' }, frase.replace(/^Non ho mai /, '…'))),
-    h('button', { class: 'btn ' + (mio ? 'ghost' : ''), onclick: () => setCampo(`gioco.si.${g.i}.${slugG(me)}`, !mio) }, mio ? 'Ops, no, non l’ho fatto' : 'Io l’ho fatto'),
-    chi.length ? h('p', { class: 'small' }, 'L’hanno fatto: ' + chi.join(', ')) : h('p', { class: 'small' }, 'Per ora nessuno confessa.'),
-    h('div', { class: 'row' }, h('button', { class: 'btn ghost', style: 'flex:1', disabled: g.i === 0 || null, onclick: () => setCampo('gioco.i', g.i - 1) }, 'Indietro'),
-      h('button', { class: 'btn big', style: 'flex:2', disabled: fine || null, onclick: () => setCampo('gioco.i', g.i + 1) }, fine ? 'Finite!' : 'Prossima')),
-    fineBox(g)];
+const REGOLE_ASSASSINO = [
+  'Ognuno riceve in segreto una parola e una vittima. Lo scopo è far dire quella parola alla vittima, quando vuoi, durante tutto il weekend: a tavola, in macchina, al gioco.',
+  'Se la vittima la dice, la fai fuori: premi «Ha detto la parola» e diglielo (a voce o con un’occhiata). Da quel momento ti prendi la sua parola e la sua vittima.',
+  'Vale solo se la dice lei di sua iniziativa: niente «ripeti dopo di me», niente leggere ad alta voce. Si vale invece fare domande furbe.',
+  'Chi è morto non gioca più ma può fare il tifo, e non deve rivelare la parola che aveva.',
+  'Vince chi resta vivo per ultimo. Torneo: 1 punto per ogni vittima, 3 a chi vince.'];
+var assAperta = false;
+function boxAssassino() {
+  const a = state.assassino; if (!a) return [];
+  const morti = a.morti || []; const vivi = viviA(a); const gioca = a.players.includes(me);
+  const mioMorto = morti.find(m => m.chi === me); const k = slugG(me || '');
+  const out = [h('div', { class: 'box' }, h('h3', {}, 'Parola assassina'),
+    h('h2', {}, a.vince ? 'Ha vinto ' + a.vince : vivi.length + ' vivi su ' + a.players.length),
+    h('p', { class: 'small' }, a.vince ? 'Partita finita.' : 'Si gioca in sottofondo per tutto il weekend, anche mentre fate altri giochi.'))];
+  if (!a.vince && gioca && !mioMorto) {
+    out.push(h('div', { class: 'envelope' + (assAperta ? ' current' : '') }, h('h3', {}, 'La tua missione'),
+      assAperta ? h('div', {}, h('p', { class: 'sub' }, 'Fai dire a ' + a.bersaglio[k] + ' la parola'), h('p', { class: 'winner' }, '«' + a.parola[k] + '»')) : h('p', { class: 'sub' }, 'Coperta: guardala senza farti vedere.'),
+      h('button', { class: 'btn ' + (assAperta ? 'ghost' : ''), onclick: () => { assAperta = !assAperta; render(); } }, assAperta ? 'Copri' : 'Tocca per vedere')));
+    out.push(conferma('assk', a.bersaglio[k] + ' ha detto la parola', () => { assAperta = false; setCampo('assassino', uccidi(a, me)); }, 'btn'));
+  } else if (mioMorto && !a.vince) out.push(h('div', { class: 'envelope current' }, h('h3', {}, 'Sei fuori'),
+    h('p', { class: 'sub' }, `Ti ha fatto fuori ${mioMorto.da} con la parola «${mioMorto.parola}». Adesso fai il tifo e non dire niente a nessuno.`)));
+  else if (!gioca) out.push(h('p', { class: 'small' }, 'Non sei in questa partita.'));
+  if (morti.length) out.push(h('div', { class: 'box' }, h('h3', {}, 'Cimitero'), h('div', { class: 'list' }, morti.map(m => h('div', { class: 'item' },
+    h('b', {}, m.chi), h('span', {}, a.vince ? `fatto fuori da ${m.da} con «${m.parola}»` : 'fatto fuori alle ' + new Date(m.t).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })))))));
+  out.push(h('details', { class: 'box ricetta' }, h('summary', {}, h('h3', {}, 'Regole')), ...REGOLE_ASSASSINO.map(r => h('p', { class: 'small' }, r)),
+    h('div', { class: 'row' }, morti.length ? conferma('assu', 'Annulla l’ultima uccisione', () => setCampo('assassino', annullaUltima(a))) : null,
+      conferma('assx', 'Chiudi la partita', () => setCampo('assassino', null)))));
+  return out;
 }
 
 // Parole vietate: chi spiega vede la carta e preme i pulsanti; la squadra avversaria vede la carta per controllare

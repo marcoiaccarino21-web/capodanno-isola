@@ -183,46 +183,43 @@ export function classifica(torneo, people) {
   return Object.entries(t).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
 
-/* ================= NON HO MAI ================= */
-export const NONHOMAI = {
-  soft: [
-    'Non ho mai dormito in macchina', 'Non ho mai perso un aereo o un treno', 'Non ho mai finto di essere malato per non andare a scuola o al lavoro',
-    'Non ho mai mangiato un’intera pizza famiglia da solo', 'Non ho mai cantato al karaoke', 'Non ho mai pianto guardando un cartone animato',
-    'Non ho mai rotto qualcosa a casa d’altri senza dirlo', 'Non ho mai dimenticato il compleanno di un amico', 'Non ho mai fatto un tatuaggio',
-    'Non ho mai sbagliato strada per più di un’ora', 'Non ho mai bruciato una pentola', 'Non ho mai mandato un messaggio alla persona sbagliata',
-    'Non ho mai dormito più di 14 ore di fila', 'Non ho mai fatto il bagno al mare a dicembre', 'Non ho mai preso una multa',
-    'Non ho mai visto l’alba senza essere andato a dormire', 'Non ho mai riciclato un regalo', 'Non ho mai mentito sulla mia età',
-    'Non ho mai mangiato qualcosa caduto per terra', 'Non ho mai litigato con un controllore', 'Non ho mai chiamato la maestra «mamma»',
-    'Non ho mai fatto finta di conoscere una canzone', 'Non ho mai spoilerato un film apposta', 'Non ho mai perso le chiavi di casa',
-    'Non ho mai fatto la doccia vestito', 'Non ho mai guardato una serie intera in un giorno', 'Non ho mai scritto una poesia',
-    'Non ho mai preso un 2 a scuola', 'Non ho mai copiato un compito in classe', 'Non ho mai fatto campeggio',
-    'Non ho mai ballato su un tavolo', 'Non ho mai fatto una figuraccia davanti a un professore', 'Non ho mai mangiato lumache',
-    'Non ho mai parlato da solo ad alta voce in pubblico', 'Non ho mai lasciato un ristorante senza pagare per sbaglio', 'Non ho mai vinto qualcosa a un concorso',
-    'Non ho mai incontrato una persona famosa', 'Non ho mai fatto uno scherzo telefonico', 'Non ho mai buttato il telefono nel water',
-    'Non ho mai preso il treno senza biglietto', 'Non ho mai fatto il pieno della macchina sbagliando carburante', 'Non ho mai fatto un selfie con uno sconosciuto',
-    'Non ho mai pianto a un matrimonio', 'Non ho mai detto «ti amo» per primo', 'Non ho mai fatto un viaggio da solo',
-    'Non ho mai cucinato per più di dieci persone', 'Non ho mai sognato di essere in mutande a scuola', 'Non ho mai finto di essere al telefono per evitare qualcuno',
-    'Non ho mai mangiato a colazione gli avanzi della cena', 'Non ho mai perso a un gioco da tavolo e tenuto il muso', 'Non ho mai vomitato in macchina',
-    'Non ho mai fatto la spesa in pigiama', 'Non ho mai ascoltato la stessa canzone dieci volte di fila', 'Non ho mai preso un pesce'
-  ],
-  piccante: [
-    'Non ho mai baciato qualcuno conosciuto la sera stessa', 'Non ho mai scritto a un ex dopo mezzanotte', 'Non ho mai bevuto così tanto da non ricordare la serata',
-    'Non ho mai baciato qualcuno in questa stanza', 'Non ho mai avuto una cotta per un amico di questa stanza', 'Non ho mai stalkerato un ex sui social',
-    'Non ho mai mentito per uscire con qualcuno', 'Non ho mai dato un numero di telefono falso', 'Non ho mai fatto un appuntamento al buio',
-    'Non ho mai usato un’app di incontri', 'Non ho mai lasciato qualcuno per messaggio', 'Non ho mai baciato due persone nella stessa sera',
-    'Non ho mai fatto il bagno nudo', 'Non ho mai dormito sul pavimento dopo una festa', 'Non ho mai detto il nome sbagliato in un momento romantico',
-    'Non ho mai letto i messaggi del telefono di qualcun altro', 'Non ho mai finto di essermi addormentato per non parlare', 'Non ho mai avuto una storia segreta',
-    'Non ho mai bevuto direttamente dalla bottiglia a una festa', 'Non ho mai flirtato per avere uno sconto', 'Non ho mai vomitato a una festa',
-    'Non ho mai baciato qualcuno per una scommessa', 'Non ho mai mandato una foto di cui mi sono pentito', 'Non ho mai detto una bugia in questa vacanza',
-    'Non ho mai parlato male di qualcuno in questa stanza', 'Non ho mai dimenticato il nome della persona con cui stavo uscendo', 'Non ho mai fatto una dichiarazione da ubriaco',
-    'Non ho mai saltato il lavoro per i postumi', 'Non ho mai ballato un lento con uno sconosciuto', 'Non ho mai fatto pace con qualcuno solo per convenienza'
-  ]
-};
-export function nuovoNonHoMai(players, by, mazzo = 'soft', rnd = Math.random) {
-  const frasi = mazzo === 'tutte' ? [...NONHOMAI.soft, ...NONHOMAI.piccante] : NONHOMAI[mazzo] || NONHOMAI.soft;
-  return { tipo: 'nonhomai', id: String(Date.now()) + Math.floor(rnd() * 1000), by, players, mazzo, ordine: shuffle(frasi.map((_, i) => i), rnd), i: 0, si: {} };
+/* ================= PAROLA ASSASSINA (dura tutto il weekend) ================= */
+// parole che si dicono davvero in una conversazione, ma non a ogni frase
+export const PAROLE_ASSASSINE = ['comunque', 'praticamente', 'ovviamente', 'assurdo', 'esatto', 'tranquillo', 'pazzesco', 'magari', 'domani', 'stanco',
+  'freddo', 'caldo', 'fame', 'dormire', 'telefono', 'macchina', 'sigaretta', 'acqua', 'ghiaccio', 'bicchiere', 'forchetta', 'sale', 'pane', 'formaggio',
+  'cioccolato', 'caffè', 'birra', 'spritz', 'regalo', 'foto', 'canzone', 'musica', 'film', 'calcio', 'lavoro', 'università', 'esame', 'vacanza', 'mare',
+  'montagna', 'neve', 'pioggia', 'nebbia', 'Genova', 'Milano', 'treno', 'autostrada', 'benzina', 'parcheggio', 'chiavi', 'giacca', 'scarpe', 'occhiali',
+  'cuscino', 'coperta', 'doccia', 'bagno', 'cucina', 'divano', 'televisione', 'cane', 'gatto', 'mamma', 'nonna', 'compleanno', 'matrimonio', 'Natale',
+  'mezzanotte', 'stasera', 'ieri', 'presto', 'tardi', 'minuto', 'soldi', 'euro', 'scommessa', 'vero', 'bugia', 'ragione', 'fortuna', 'sfiga',
+  'sinceramente', 'tipo', 'boh', 'figurati', 'certo', 'perfetto', 'basta', 'aspetta', 'scusa', 'grazie mille', 'buonissimo', 'schifo', 'bellissimo'];
+// cerchio casuale: ognuno ha come bersaglio il successivo, e una parola diversa da far dire
+export function nuovoAssassino(players, by, rnd = Math.random) {
+  const giro = shuffle(players, rnd); const parole = shuffle(PAROLE_ASSASSINE, rnd);
+  const bersaglio = {}, parola = {};
+  giro.forEach((p, i) => { bersaglio[slugG(p)] = giro[(i + 1) % giro.length]; parola[slugG(p)] = parole[i]; });
+  return { id: String(Date.now()) + Math.floor(rnd() * 1000), by, players: giro, bersaglio, parola, morti: [], vince: null };
 }
-export const fraseNonHoMai = g => (g.mazzo === 'tutte' ? [...NONHOMAI.soft, ...NONHOMAI.piccante] : NONHOMAI[g.mazzo] || NONHOMAI.soft)[g.ordine[g.i]];
+export const viviA = a => a.players.filter(p => !(a.morti || []).some(m => m.chi === p));
+// il killer prende bersaglio e parola della vittima
+export function uccidi(a, killer, t = Date.now()) {
+  const k = slugG(killer); const vit = a.bersaglio[k]; if (!vit || vit === killer) return a;
+  const v = slugG(vit);
+  const morti = [...(a.morti || []), { chi: vit, da: killer, parola: a.parola[k], t, prima: { bersaglio: vit, parola: a.parola[k] } }];
+  const bersaglio = { ...a.bersaglio, [k]: a.bersaglio[v] }, parola = { ...a.parola, [k]: a.parola[v] };
+  const b = { ...a, bersaglio, parola, morti };
+  return { ...b, vince: viviA(b).length === 1 ? killer : null };
+}
+export function annullaUltima(a) {
+  const morti = [...(a.morti || [])]; const m = morti.pop(); if (!m) return a;
+  const k = slugG(m.da);
+  return { ...a, morti, vince: null, bersaglio: { ...a.bersaglio, [k]: m.prima.bersaglio }, parola: { ...a.parola, [k]: m.prima.parola } };
+}
+// torneo: 1 punto per uccisione, 3 a chi resta vivo per ultimo
+export function puntiAssassino(a) {
+  const p = {}; for (const m of a.morti || []) p[m.da] = (p[m.da] || 0) + 1;
+  if (a.vince) p[a.vince] = (p[a.vince] || 0) + 3;
+  return p;
+}
 
 /* ================= PAROLE VIETATE (a squadre, a tempo) ================= */
 export const CARTE = [
