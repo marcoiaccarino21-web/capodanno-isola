@@ -321,7 +321,7 @@ function screenGiallo() {
       if (sbloccati.length) out.push(h('div', { class: 'box' }, h('h3', {}, sbloccati.length === 1 ? 'Il tuo indizio' : 'I tuoi indizi'),
         h('div', { class: 'list' }, sbloccati.map((t, i) => h('div', { class: 'item' + (i === sbloccati.length - 1 ? ' reveal' : '') }, h('b', {}, 'Giro ' + (i + 1)), h('span', {}, genere(t, x.sesso, c.id)))))));
       const tel = telefonateDi(c.id);
-      if (tel.length) out.push(h('div', { class: 'box' }, h('h3', {}, tel.length === 1 ? 'La telefonata che hai ricevuto' : 'Le telefonate che hai ricevuto'),
+      if (tel.length) out.push(h('div', { class: 'box' }, h('h3', {}, tel.length === 1 ? (tel[0].uscita ? 'La tua telefonata' : 'La telefonata che hai ricevuto') : 'Le tue telefonate'),
         ...tel.map(t => h('div', { style: 'display:flex;flex-direction:column;gap:6px' }, h('strong', {}, t.from + ' · ' + t.role),
           h('audio', { controls: true, preload: 'none', src: './telefonate/' + t.id + '.mp3', style: 'width:100%' }),
           h('p', { class: 'small' }, '«' + genere(t.text, x.sesso, c.id) + '»')))));
@@ -993,13 +993,13 @@ function showTelefonata() {
     h('button', { class: 'btn big', onclick: ev => { suona(false); const el = document.getElementById('telefonata'); el.dataset.aperta = '1';
       const au = new Audio('./telefonate/' + t.id + '.mp3'); au.play().catch(() => {});
       ev.target.replaceWith(h('p', { style: 'font-size:17px;line-height:1.5;text-align:left' }, '«' + genere(t.text, x.sesso, c.id) + '»'),
-        h('button', { class: 'btn big', onclick: () => { au.pause(); chiudi(); } }, 'Riaggancia')); } }, 'Rispondi'));
+        h('button', { class: 'btn big', onclick: () => { au.pause(); chiudi(); } }, 'Riaggancia')); } }, t.uscita ? 'Chiama ' + t.from.split(' ')[0] : 'Rispondi'));
   const el = h('div', { id: 'telefonata', role: 'alertdialog', style: 'position:fixed;inset:0;z-index:48;background:#171C36;display:flex;align-items:center;justify-content:center;overflow:auto;padding:calc(24px + env(safe-area-inset-top,0px)) max(20px, env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px, env(safe-area-inset-left,0px))' },
     h('div', { class: 'wrap reveal', style: 'text-align:center;gap:16px' },
-      h('p', { class: 'eyebrow' }, 'Solo per te · chiamata in arrivo'),
+      h('p', { class: 'eyebrow' }, t.uscita ? 'Solo per te · chiami tu' : 'Solo per te · chiamata in arrivo'),
       h('h1', {}, t.from.split(' ').slice(0, -1).join(' ') + ' ', h('em', {}, t.from.split(' ').slice(-1)[0])),
-      h('p', { class: 'sub' }, t.role + '. Rispondi: poi decidi tu se farla sentire agli altri.'), testo));
-  document.body.append(el); suona(true);
+      h('p', { class: 'sub' }, t.uscita ? genere(t.nota, x.sesso, c.id) + ' Poi decidi tu se farla sentire agli altri.' : t.role + '. Rispondi: poi decidi tu se farla sentire agli altri.'), testo));
+  document.body.append(el); if (!t.uscita) suona(true);
   try { navigator.vibrate && navigator.vibrate([800, 400, 800, 400, 800, 400, 800]); } catch {}
 }
 function showCall() {
