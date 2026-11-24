@@ -320,11 +320,12 @@ function screenGiallo() {
       const sbloccati = c.clues.slice(0, g.round);
       if (sbloccati.length) out.push(h('div', { class: 'box' }, h('h3', {}, sbloccati.length === 1 ? 'Il tuo indizio' : 'I tuoi indizi'),
         h('div', { class: 'list' }, sbloccati.map((t, i) => h('div', { class: 'item' + (i === sbloccati.length - 1 ? ' reveal' : '') }, h('b', {}, 'Giro ' + (i + 1)), h('span', {}, genere(t, x.sesso, c.id)))))));
-      const tel = telefonateDi(c.id);
+      const tel = [...telefonateDi(c.id), ...telefonateFatte()];
       if (tel.length) out.push(h('div', { class: 'box' }, h('h3', {}, tel.length === 1 ? (tel[0].uscita ? 'La tua telefonata' : 'La telefonata che hai ricevuto') : 'Le tue telefonate'),
         ...tel.map(t => h('div', { style: 'display:flex;flex-direction:column;gap:6px' }, h('strong', {}, t.from + ' · ' + t.role),
           h('audio', { controls: true, preload: 'none', src: './telefonate/' + t.id + '.mp3', style: 'width:100%' }),
           h('p', { class: 'small' }, '«' + genere(t.text, x.sesso, c.id) + '»')))));
+      if (g.round >= 1 && !g.solved) out.push(boxTelefono());
     }
   } else if (me) {
     out.push(h('div', { class: 'box' }, h('p', { class: 'sub' }, 'Non hai un personaggio: chiedi all’organizzatore di rifare l’assegnazione.')));
@@ -396,10 +397,10 @@ function screenNarratore() {
     h('div', { class: 'list' }, GIALLO.script.map(x => h('div', { class: 'item' }, h('b', {}, x.time), h('span', {}, h('strong', {}, x.title + '. '), x.text))))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Da preparare prima di cena'), h('ul', { class: 'sub', style: 'margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px' }, GIALLO.prep.map(t => h('li', {}, t)))));
   out.push(h('div', { class: 'box' }, h('h3', {}, 'Le telefonate dei personaggi assenti'),
-    h('p', { class: 'small' }, 'Partono da sole sul telefono di chi le riceve quando sblocchi il giro. Se quel giocatore non c’è, falla sentire tu da qui.'),
+    h('p', { class: 'small' }, 'Quelle in arrivo partono da sole sul telefono di chi le riceve quando sblocchi il giro; quella a Gianni la fa chi compone il numero. Se serve, falle sentire tu da qui.'),
     h('div', { class: 'list' }, (GIALLO.calls || []).map(t => { const a = g.assign.find(x => x.c === t.to);
       return h('div', { class: 'item' }, h('b', {}, 'Giro ' + t.round), h('span', { style: 'display:flex;flex-direction:column;gap:6px' },
-        h('strong', {}, t.from + ' chiama ' + (a ? a.p + ' (' + pers(a).role.toLowerCase() + ')' : charById(t.to).role.toLowerCase() + ': non assegnato, leggila tu')),
+        h('strong', {}, t.numero ? 'Si chiama ' + t.from + ' dal Telefono della villa, numero ' + t.numero.replace(/^(\d{4})(\d{2})(\d{2})(\d{2})$/, '$1 $2 $3 $4') + ' (biglietto nello studio)' : t.from + ' chiama ' + (a ? a.p + ' (' + pers(a).role.toLowerCase() + ')' : charById(t.to).role.toLowerCase() + ': non assegnato, leggila tu')),
         h('audio', { controls: true, preload: 'none', src: './telefonate/' + t.id + '.mp3', style: 'width:100%' }), h('span', { class: 'small' }, '«' + t.text + '»'))); }))));
   out.push(boxCartina());
   out.push(boxStanze());
@@ -970,6 +971,26 @@ function showAllarme() {
 }
 // telefonate dei personaggi che non sono alla festa: arrivano quando si sblocca il loro giro
 function telefonateDi(id) { return (GIALLO.calls || []).filter(t => t.to === id && t.round <= (state.giallo.round || 0)); }
+function telefonateFatte() { return (GIALLO.calls || []).filter(t => t.numero && load('chiamato:' + t.id) === '1'); }
+var chiamataManuale = null, numeroComposto = '', esitoNumero = '', telefonoAperto = false;
+function boxTelefono() {
+  const g = state.giallo; const n = numeroComposto;
+  const fmt = n.replace(/^(\d{4})(\d{0,2})(\d{0,2})(\d{0,2})$/, (m, a, b, c2, d) => [a, b, c2, d].filter(Boolean).join(' '));
+  const tasto = k => h('button', { class: 'btn ghost', style: 'min-height:52px;font-size:22px', onclick: () => { if (numeroComposto.length < 12) numeroComposto += k; esitoNumero = ''; render(); } }, k);
+  const chiama = () => {
+    const t = (GIALLO.calls || []).find(x => x.numero && x.numero === numeroComposto);
+    if (!t) esitoNumero = 'Tu-tu-tu… Il numero selezionato è inesistente.';
+    else if ((g.round || 0) < t.round) esitoNumero = 'Squilla a vuoto: non risponde nessuno. Riprova più tardi.';
+    else { esitoNumero = ''; numeroComposto = ''; chiamataManuale = t; showTelefonata(); return; }
+    render();
+  };
+  return h('details', { class: 'box ricetta', open: telefonoAperto, ontoggle: e => { telefonoAperto = e.target.open; } }, h('summary', {}, h('h3', {}, 'Telefono della villa'), h('span', { class: 'small' }, 'Se trovi un numero, chiamalo da qui')),
+    h('p', { class: 'winner', style: 'font-size:30px;min-height:40px;letter-spacing:2px;text-align:center' }, fmt || '…'),
+    h('div', { style: 'display:grid;grid-template-columns:repeat(3,1fr);gap:8px' }, ...['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(tasto),
+      h('button', { class: 'btn ghost', style: 'min-height:52px', onclick: () => { numeroComposto = numeroComposto.slice(0, -1); esitoNumero = ''; render(); } }, '⌫'), tasto('0'),
+      h('button', { class: 'btn', style: 'min-height:52px', disabled: numeroComposto.length < 6 || null, onclick: chiama }, 'Chiama')),
+    esitoNumero ? h('p', { class: 'sub', style: 'text-align:center' }, esitoNumero) : null);
+}
 var squillo = null;
 function suona(on) {
   try {
@@ -984,11 +1005,11 @@ function suona(on) {
 function showTelefonata() {
   const g = state.giallo; const old = document.getElementById('telefonata');
   const a = g && g.assign.find(x => x.p === me); const c = a && GIALLO.characters.find(x => x.id === a.c);
-  const k = x => 'tel:' + x.id + ':' + (g.call ? g.call.at : ''); const t = c && !g.solved && telefonateDi(c.id).find(x => load(k(x)) !== 'ok');
+  const k = x => 'tel:' + x.id + ':' + (g.call ? g.call.at : ''); const t = chiamataManuale || (c && !g.solved && telefonateDi(c.id).find(x => load(k(x)) !== 'ok'));
   if (!t || document.getElementById('chiamata') || document.getElementById('allarme')) { if (old && !old.dataset.aperta) { old.remove(); suona(false); } return; }
   if (old) return;
   const x = pers(a);
-  const chiudi = () => { save(k(t), 'ok'); suona(false); document.getElementById('telefonata')?.remove(); render(); };
+  const chiudi = () => { save(k(t), 'ok'); if (t.numero) save('chiamato:' + t.id, '1'); chiamataManuale = null; suona(false); document.getElementById('telefonata')?.remove(); render(); };
   const testo = h('div', { style: 'display:flex;flex-direction:column;gap:14px' },
     h('button', { class: 'btn big', onclick: ev => { suona(false); const el = document.getElementById('telefonata'); el.dataset.aperta = '1';
       const au = new Audio('./telefonate/' + t.id + '.mp3'); au.play().catch(() => {});
