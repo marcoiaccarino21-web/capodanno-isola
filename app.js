@@ -320,7 +320,7 @@ function screenGiallo() {
     const x = pers(state.giallo.assign.find(a => a.p === me));
     out.push(h('div', { class: 'box gold reveal' }, h('h3', {}, 'Il tuo personaggio · ' + x.role), h('p', { class: 'big-dish' }, x.name),
       h('p', {}, genere(c.intro, x.sesso, c.id)),
-      h('p', { style: 'font-size:15px;font-weight:600' }, 'Porta a tracolla il tuo cartellino. Il personaggio è solo sul tuo telefono: non farlo vedere a nessuno.')));
+      h('p', { style: 'font-size:15px;font-weight:600' }, 'Porta a tracolla il tuo cartellino. Scheda segreta della busta e telefono: non farli vedere a nessuno.')));
     if (c.carattere) out.push(boxCarattere(c.carattere));
     if (!morto) out.push(boxCartellino(c.id, x.name, x.role, x.sesso));
     if (g.call && g.call.to === me && !g.allarme && g.round === 0) out.push(h('div', { class: 'box gold' }, h('h3', {}, 'Nello studio'),
