@@ -315,7 +315,7 @@ function screenGiallo() {
     if (!morto && g.task && g.task.to === me) out.push(h('div', { class: 'box' }, h('h3', {}, 'La tua missione · non mostrarla'), h('div', { class: 'sub' }, passiMissione())));
     else {
       out.push(h('div', { class: 'box reveal' }, h('h3', {}, 'Il tuo segreto · non mostrarlo'), h('p', {}, genere(c.secret, x.sesso, c.id)),
-        c.where ? h('h3', {}, 'Dove eri davvero · 19:25–19:35') : null, c.where ? h('p', {}, c.where) : null,
+        c.where ? h('h3', {}, 'Dove eri davvero · 19:25–19:35') : null, c.where ? h('p', {}, genere(c.where, x.sesso, c.id)) : null,
         h('h3', {}, 'Il tuo obiettivo'), h('p', {}, genere(c.goal, x.sesso, c.id))));
       const sbloccati = c.clues.slice(0, g.round);
       if (sbloccati.length) out.push(h('div', { class: 'box' }, h('h3', {}, sbloccati.length === 1 ? 'Il tuo indizio' : 'I tuoi indizi'),
