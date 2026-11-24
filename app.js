@@ -621,6 +621,7 @@ function screenGiochi() {
   if (g && g.tipo === 'lupus') return screenLupus(g);
   if (g && g.tipo === 'nonhomai') return screenNonHoMai(g);
   if (g && g.tipo === 'taboo') return screenTaboo(g);
+  if (regoleBar) return screenRegoleBarcellona();
   if (setup) return screenSetup();
   return [h('div', { class: 'box' }, h('h3', {}, 'Giochi'), h('h2', {}, 'A cosa giochiamo?'),
       h('p', { class: 'sub' }, 'Chiunque può far partire una partita: ognuno gioca dal suo telefono. Una partita alla volta.')),
@@ -630,6 +631,8 @@ function screenGiochi() {
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Lupus in fabula'), h('small', {}, 'Lupi contro villaggio. Di notte i lupi sbranano, di giorno il villaggio vota chi giustiziare. L’app fa da narratore. Da 5 giocatori.')),
     h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'taboo', sel: [...state.people], opz: { durata: 60, obiettivo: 20 } }; render(); } },
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Parole vietate'), h('small', {}, 'Due squadre, a tempo: fai indovinare la parola senza dire le 5 vietate. Chi spiega ha la carta sul telefono, gli avversari controllano. Da 4 giocatori.')),
+    h('button', { class: 'nominee', onclick: () => { regoleBar = true; render(); } },
+      h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Il Barcellona'), h('small', {}, 'Gioco alcolico con un mazzo di carte vero: qui ci sono le regole.')),
     h('button', { class: 'nominee', onclick: () => { setup = { tipo: 'nonhomai', sel: [...state.people], opz: { mazzo: 'soft' } }; render(); } },
       h('strong', { style: 'font-family:var(--display);font-size:22px' }, 'Non ho mai'), h('small', {}, 'L’app pesca una frase, chi l’ha fatto beve e confessa sul telefono. Versione tranquilla o piccante.')),
     ...boxTorneo()];
@@ -859,6 +862,25 @@ function screenTaboo(g) {
   }
   out.push(fineBox(g));
   return out;
+}
+
+const REGOLE_BARCELLONA = [['Indovinata', 'beve chi è di turno'], ['Una sopra (numero detto +1)', 'beve il giocatore successivo'], ['Una sotto (numero detto −1)', 'beve il giocatore precedente'], ['Fante', 'chi è di turno beve doppio'],
+  ['Donna', 'beve chi ha bevuto per ultimo'], ['Re', 'bevono tutti tranne chi è di turno'], ['Asso', 'bevono tutti'], ['Jolly', 'chi è di turno sceglie chi beve']];
+var regoleBar = false;
+function screenRegoleBarcellona() {
+  return [h('div', { class: 'box' }, h('h3', {}, 'Gioco con le carte'), h('h2', {}, 'Il Barcellona'),
+      h('p', { class: 'sub' }, 'Serve un mazzo di carte con i jolly e da bere. Più si è, meglio è. Bevete responsabilmente: un sorso, non un bicchiere; chi non beve alcol beve acqua o succo.')),
+    h('div', { class: 'box' }, h('h3', {}, 'Come si gioca'), h('ol', { class: 'nomi', style: 'font-size:16px' },
+      h('li', {}, 'Si ripassa cosa fa ogni carta. A ogni partita si possono aggiungere regole nuove.'),
+      h('li', {}, 'Si sceglie il mazziere, che decide il verso del giro.'),
+      h('li', {}, 'Chi è di turno dice un numero da 2 a 10; il mazziere scopre la prima carta del mazzo e si fa quello che dice la carta.'),
+      h('li', {}, 'Si continua il giro fino a esaurimento scorte.'))),
+    h('div', { class: 'box' }, h('h3', {}, 'Cosa fa ogni carta'), h('div', { class: 'list' }, REGOLE_BARCELLONA.map(([a, b]) => h('div', { class: 'item' }, h('b', {}, a), h('span', {}, b))))),
+    h('div', { class: 'box' }, h('h3', {}, 'Casi dubbi'), h('ul', { class: 'nomi', style: 'font-size:15px' },
+      h('li', {}, 'Se la carta non è il numero detto né quella sopra o sotto, non beve nessuno.'),
+      h('li', {}, 'Donna: se l’ultima carta ha fatto bere tutti, bevono di nuovo tutti. Se nessuno ha ancora bevuto, si salvano tutti.'),
+      h('li', {}, 'Fante, Donna, Re, Asso e Jolly valgono sempre, qualunque numero sia stato detto.'))),
+    h('button', { class: 'btn big', onclick: () => { regoleBar = false; render(); } }, 'Torna ai giochi')];
 }
 
 /* ---------- impaginazione ---------- */
