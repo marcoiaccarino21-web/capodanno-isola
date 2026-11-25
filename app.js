@@ -1175,6 +1175,8 @@ function showAllarme() {
 // telefonate dei personaggi che non sono alla festa: arrivano quando si sblocca il loro giro
 function telefonateDi(id) { return (GIALLO.calls || []).filter(t => t.to === id && t.round <= (state.giallo.round || 0)); }
 function telefonateFatte() { return (GIALLO.calls || []).filter(t => t.numero && load('chiamato:' + t.id) === '1'); }
+// prima del suo giro Gianni non risponde: parte la segreteria
+const SEGRETERIA = { autista: 'Casa Pozzi. Risponde la segreteria telefonica. In questo momento non posso rispondere. Richiamate più tardi. Grazie.' };
 var chiamataManuale = null, numeroComposto = '', esitoNumero = '', telefonoAperto = false;
 function boxTelefono() {
   const g = state.giallo; const n = numeroComposto;
@@ -1183,6 +1185,7 @@ function boxTelefono() {
   const chiama = () => {
     const t = (GIALLO.calls || []).find(x => x.numero && x.numero === numeroComposto);
     if (!t) esitoNumero = 'Tu-tu-tu… Il numero selezionato è inesistente.';
+    else if ((g.round || 0) < t.round && SEGRETERIA[t.id]) { esitoNumero = ''; numeroComposto = ''; chiamataManuale = { id: t.id + '-segreteria', from: t.from, uscita: true, nota: 'Hai composto il numero di ' + t.from.split(' ')[0] + '.', text: SEGRETERIA[t.id] }; showTelefonata(); return; }
     else if ((g.round || 0) < t.round) esitoNumero = 'Squilla a vuoto: non risponde nessuno. Riprova più tardi.';
     else { esitoNumero = ''; numeroComposto = ''; chiamataManuale = t; showTelefonata(); return; }
     render();
